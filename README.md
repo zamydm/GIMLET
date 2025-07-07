@@ -7,22 +7,3 @@ Requisite Softwares:
 * Insane: 
 * Martini3: 
 * Vermouth/Martinize2:
-
-
-
-Lipid membrane 
-* Upper/Outer Leaflet Ratios:
-  * CHOL:
-  * POPC:
-  * DLPE:
-  * POPE:
-  * PAPC:
-  * SSM:
-* Lower/Inner Leaflet Ratios:
-  * CHOL:
-  * POPC:
-  * DLPE:
-  * POPE:
-  * PAPC:
-  * PAPS:
-  * SSM:
