@@ -14,7 +14,7 @@
   * [Insane](#insane)
   * [Martini3](#martini3)
   * [MDAnalysis](#mdanalysis)
-  * [Vermouth-Martinize2](#vermouthmartinize2)
+  * [Vermouth-Martinize2](#vermouth-martinize2)
 - [Coarse Graining](#coarse-graining)
 - [Methodology](#methodology)
   * [Atomistic](#atomistic)
