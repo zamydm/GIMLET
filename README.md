@@ -14,7 +14,7 @@
   * [Insane](#insane)
   * [Martini3](#martini3)
   * [MDAnalysis](#mdanalysis)
-  * [Vermouth/Martinize2](#vermouthmartinize2)
+  * [Vermouth-Martinize2](#vermouthmartinize2)
 - [Coarse Graining](#coarse-graining)
 - [Methodology](#methodology)
   * [Atomistic](#atomistic)
@@ -36,7 +36,7 @@ The focus of this repository is to provide a set of tips, tools, and scripts for
 ### Insane
 ### Martini3
 ### MDAnalysis
-### Vermouth/Martinize2
+### Vermouth-Martinize2
 
 ## Coarse Graining
 
