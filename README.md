@@ -11,8 +11,9 @@
   * [Charmm-Gui](#charmm-gui)
   * [ChimeraX](#chimerax)
   * [GROMACS](#gromacs)
-  * [Martini3](#martini3)
   * [Insane](#insane)
+  * [Martini3](#martini3)
+  * [MDAnalysis](#mdanalysis)
   * [Vermouth/Martinize2](#vermouthmartinize2)
 - [Coarse Graining](#coarse-graining)
 - [Methodology](#methodology)
@@ -29,16 +30,13 @@
 The focus of this repository is to provide a set of tips, tools, and scripts for mass simulation of ion channels in an easily reproducible method. Included are overviews of relevant softwares for ion channel simulation, discussion of the utility and limitations of coarse graining, an overview of the methodology of simulation, discussion on relevant characteristics of channels for analysis, and resources/references to learn more. 
 
 ## Software
-
-### ChimeraX
-
-
-
-### GROMACS
 ### Charmm-Gui
-### Vermouth/Martinize2
+### ChimeraX
+### GROMACS
 ### Insane
 ### Martini3
+### MDAnalysis
+### Vermouth/Martinize2
 
 ## Coarse Graining
 
@@ -51,8 +49,6 @@ The focus of this repository is to provide a set of tips, tools, and scripts for
 ### Simulation
 
 ## Analysis
-
-
 
 ## Resources
 
