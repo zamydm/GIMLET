@@ -7,7 +7,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Requisite Software](#requisite-software)
+- [Software](#software)
   * [Charmm-Gui](#charmm-gui)
   * [ChimeraX](#chimerax)
   * [GROMACS](#gromacs)
@@ -28,7 +28,7 @@
 ## Overview
 The focus of this repository is to provide a set of tips, tools, and scripts for mass simulation of ion channels in an easily reproducible method. Included are overviews of relevant softwares for ion channel simulation, discussion of the utility and limitations of coarse graining, an overview of the methodology of simulation, discussion on relevant characteristics of channels for analysis, and resources/references to learn more. 
 
-## Requisite Software
+## Software
 
 ### ChimeraX
 
