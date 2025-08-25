@@ -1,10 +1,10 @@
 <div align="center";>
   <h1>Ion Channel Simulation and Analysis Guide</h1>
-
+  
   Welcome! This is my repository for a streamlined and reproducable method of ion channel simulation and analysis through atomistic and coarse grained means.
 </div> 
 
-## Table of Contents
+## :notebook_with_decorative_cover: Table of Contents
 
 - [Overview](#overview)
 - [Software](#software)
