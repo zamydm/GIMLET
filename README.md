@@ -45,12 +45,23 @@ GROMACS is a high performance suite of tools molecular dynamic simulation and ou
 
 ### Insane
 
-Insane is a versatile tool 
+Insane is a tool for the insertion of proteins, particularly ion channels, into complex lipid membranes and the solvation of these systems. Lipids are taken from a list of existing lipid models from Martini3 as well as additional loaded lipid compositions. Proteins are inserted into the membrane with exact compositions of lipid membranes subject to user discretion. Insane is incredibly helpful for the creation of complex coarse-grained systems of a protein, solvent, and lipid membrane. 
 
 ### Martini3
+
+Martini3 is a generic coarse grain force field designed for a variety of biomolecular dynamic simulations. The force field utilizes a 4 to 1 mapping scheme for coarse graining, where on average every four atoms is mapped to one represenative bead. These beads are givena number subtypes to ensure proper matching with underlying atomistic makeups. Interactions between beads are based either on reproductions of experimental partitioning free energies between polar and apolar syetms from a variety of chemical compositions for non-bonded interactions, or on atomistic simulations for bonded interactions. These interactions, to reduce complexity, are restricted to five main types: polar, nonpolar, a-polar, charged, and halogen. Martini3 is the backbone of which all coarse grain ion channel simulations are built.
+
 ### MDAnalysis
+
+MDAanlysis is a suite of open source tools for the analysis of molecular dynamic systems. MDAnalysis is built and operated in Python, and allows for the relatively easy analysis of all manner of systems. This software serves as the undercurrent to all analysis done of ion channel simulations.
+
 ### PyMol
+
+PyMol is an open source 3D visualization software capable of customizable protein and trajectory display. It is useful for both the reassurance of simulation setup correctness as well as for the visualization of complete trajectories for analysis and publishing.
+
 ### Vermouth-Martinize2
+
+Martinize2 is a software package aimed at producing coarse grained structures for Martini3 from atomistic structures in GROMACS. Vermouth is the python library that powers Martinize2 conversions. Martinize2 is crucial for the fast and effective conversion of high complexity proteins, such as ion channels, into coarse grain components. Due to the ease of use, the softwares are invaluable for rapid conversion of complex atomistic proteins into easily readable coarse grain variants.
 
 ## Coarse Graining
 
