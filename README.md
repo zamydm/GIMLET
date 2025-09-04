@@ -79,4 +79,5 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
 
 ## References
 
-
+- Charmm-Gui:
+  + [S. Jo, T. Kim, V.G. Iyer, and W. Im (2008) CHARMM-GUI: A Web-based Graphical User Interface for CHARMM.]
