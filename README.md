@@ -92,4 +92,12 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
   + [T.P. Brown, D.E. Santa, B.A. Berger, L. Kong, N.J. Wittenberg, and W. Im (2024) CHARMM GUI Membrane Builder for oxidized phospholipid membrane modeling and simulation.](https://doi.org/10.1016/j.sbi.2024.102813)
   + [S. Feng, S. Park, Y.K. Choi, and W. Im (2024) CHARMM-GUI Membrane Builder: Past, Current, and Future Developments and Applications.](https://doi.org/10.1021/acs.jctc.2c01246)
 - GROMACS:
-  + 
+  + [Abraham, M., Alekseenko, A., Andrews, B., Basov, V., Bauer, P., Bird, H., Briand, E., Brown, A., Doijade, M., Fiorin, G., Fleischmann, S., Gorelov, S., Gouaillardet, G., Gray, A., Irrgang, M. E., Jalalypour, F., Johansson, P., Kutzner, C., Łazarski, G., … Lindahl, E. (2025). GROMACS 2025.3 Manual (2025.3). Zenodo](https://doi.org/10.5281/zenodo.16992569)
+- Insane:
+  +[Tsjerk A. Wassenaar, Helgi I. Ingólfsson, Rainer A. Böckmann, D. Peter Tieleman, and Siewert J. Marrink Journal of Chemical Theory and Computation (2015) 11 (5), 2144-2155](https://pubs.acs.org/doi/10.1021/acs.jctc.5b00209)
+- Martini3:
+  + [Souza, P.C.T., Alessandri, R., Barnoud, J. et al. Martini 3: a general purpose force field for coarse-grained molecular dynamics. Nat Methods 18, 382–388 (2021).](https://doi.org/10.1038/s41592-021-01098-3)
+- PyMol:
+  + [The PyMOL Molecular Graphics System, Version 3.0 Schrödinger, LLC.](https://pymol.org/#page-top)
+- Vermouth-Martini2:
+  + [P C KroonF GrunewaldJ BarnoudM van TilburgP C T SouzaT A WassenaarS J Marrink (2023) Martinize2 and Vermouth: Unified Framework for Topology GenerationeLife12:RP90627](https://doi.org/10.7554/eLife.90627.1)
