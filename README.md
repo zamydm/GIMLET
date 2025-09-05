@@ -94,7 +94,7 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
 - GROMACS:
   + [Abraham, M., Alekseenko, A., Andrews, B., Basov, V., Bauer, P., Bird, H., Briand, E., Brown, A., Doijade, M., Fiorin, G., Fleischmann, S., Gorelov, S., Gouaillardet, G., Gray, A., Irrgang, M. E., Jalalypour, F., Johansson, P., Kutzner, C., Łazarski, G., … Lindahl, E. (2025). GROMACS 2025.3 Manual (2025.3). Zenodo](https://doi.org/10.5281/zenodo.16992569)
 - Insane:
-  +[Tsjerk A. Wassenaar, Helgi I. Ingólfsson, Rainer A. Böckmann, D. Peter Tieleman, and Siewert J. Marrink Journal of Chemical Theory and Computation (2015) 11 (5), 2144-2155](https://pubs.acs.org/doi/10.1021/acs.jctc.5b00209)
+  + [Tsjerk A. Wassenaar, Helgi I. Ingólfsson, Rainer A. Böckmann, D. Peter Tieleman, and Siewert J. Marrink Journal of Chemical Theory and Computation (2015) 11 (5), 2144-2155](https://pubs.acs.org/doi/10.1021/acs.jctc.5b00209)
 - Martini3:
   + [Souza, P.C.T., Alessandri, R., Barnoud, J. et al. Martini 3: a general purpose force field for coarse-grained molecular dynamics. Nat Methods 18, 382–388 (2021).](https://doi.org/10.1038/s41592-021-01098-3)
 - PyMol:
