@@ -67,6 +67,8 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
 
 ## Methodology
 
+Below is an overview of the process of construction of ion channel environments and simulation. All tools used are referenced before, as well as helpful tutorials that provided the foundation to build this methodology.
+
 ### Atomistic
 ### Coarse Grain
 ### Lipid Membranes
@@ -91,6 +93,10 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
   + [S. Gee, K.J. Glover, N.J. Wittenberg, and W. Im (2024) CHARMM-GUI Membrane Builder for Lipid Droplet Modeling and Simulation.](https://doi.org/10.1002/cplu.202400013)
   + [T.P. Brown, D.E. Santa, B.A. Berger, L. Kong, N.J. Wittenberg, and W. Im (2024) CHARMM GUI Membrane Builder for oxidized phospholipid membrane modeling and simulation.](https://doi.org/10.1016/j.sbi.2024.102813)
   + [S. Feng, S. Park, Y.K. Choi, and W. Im (2024) CHARMM-GUI Membrane Builder: Past, Current, and Future Developments and Applications.](https://doi.org/10.1021/acs.jctc.2c01246)
+- ChimeraX:
+  + [UCSF ChimeraX: Tools for structure building and analysis. Meng EC, Goddard TD, Pettersen EF, Couch GS, Pearson ZJ, Morris JH, Ferrin TE. Protein Sci. 2023 Nov;32(11):e4792.](https://onlinelibrary.wiley.com/doi/10.1002/pro.4792)
+  + [UCSF ChimeraX: Structure visualization for researchers, educators, and developers. Pettersen EF, Goddard TD, Huang CC, Meng EC, Couch GS, Croll TI, Morris JH, Ferrin TE. Protein Sci. 2021 Jan;30(1):70-82.](https://www.ncbi.nlm.nih.gov/pubmed/32881101)
+  + [UCSF ChimeraX: Meeting modern challenges in visualization and analysis. Goddard TD, Huang CC, Meng EC, Pettersen EF, Couch GS, Morris JH, Ferrin TE. Protein Sci. 2018 Jan;27(1):14-25.](https://www.ncbi.nlm.nih.gov/pubmed/28710774)
 - GROMACS:
   + [Abraham, M., Alekseenko, A., Andrews, B., Basov, V., Bauer, P., Bird, H., Briand, E., Brown, A., Doijade, M., Fiorin, G., Fleischmann, S., Gorelov, S., Gouaillardet, G., Gray, A., Irrgang, M. E., Jalalypour, F., Johansson, P., Kutzner, C., Łazarski, G., … Lindahl, E. (2025). GROMACS 2025.3 Manual (2025.3). Zenodo](https://doi.org/10.5281/zenodo.16992569)
 - Insane:
