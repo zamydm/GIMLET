@@ -79,6 +79,10 @@ Below is an overview of the process of construction of ion channel and simulatio
 
 ## Resources
 
+### Tuturials
+
+### Relevant Papers
+
 ## References
 
 - Charmm-Gui:
