@@ -16,15 +16,13 @@
   * [MDAnalysis](#mdanalysis)
   * [PyMol](#pymol)
   * [Vermouth-Martinize2](#vermouth-martinize2)
-- [Coarse Graining](#coarse-graining)
 - [Methodology](#methodology)
   * [Atomistic](#atomistic)
   * [Coarse Grain](#coarse-grain)
-  * [Lipid Membranes](#lipid-membranes)
-  * [Solvation](#solvation)
-  * [Simulation](#simulation)
 - [Analysis](#analysis)
 - [Resources](#resources)
+  * [Tutorials](#tutorials)
+  * [Relevant Papers](#relevant-papers)
 - [References](#references)
 
 ## Overview
@@ -67,13 +65,15 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
 
 ## Methodology
 
-Below is an overview of the process of construction of ion channel environments and simulation. All tools used are referenced before, as well as helpful tutorials that provided the foundation to build this methodology.
+Below is an overview of the process of construction of ion channel and simulation environments in atomistic. All tools used are referenced above. Additionally, relevant tutorials are provided below.
 
 ### Atomistic
+
+
+
 ### Coarse Grain
-### Lipid Membranes
-### Solvation
-### Simulation
+
+
 
 ## Analysis
 
