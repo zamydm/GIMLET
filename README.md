@@ -31,7 +31,7 @@ The focus of this repository is to provide a set of tips, tools, and scripts for
 ## Software
 ### Charmm-Gui
 
-Charmm-Gui is a web-based platform designed for the interactive construction of complex biological systems for simulation. It has compatibility with a variety of simulation packages such as NAMD, CHARMM, OpenMM, LAMMPS, AMBER, GENESIS, Tinker, Desmond, and of most relevance, GROMACS. Due to the complex nature of atomistic ion channel systems, developing the simulation environments by oneself can be rather laborious. Thus Charmm-Gui serves the role of readily developing these complex biological systems through a stream-lined interface. More information can be found here.
+Charmm-Gui is a web-based platform designed for the interactive construction of complex biological systems for simulation. It has compatibility with a variety of simulation packages such as NAMD, CHARMM, OpenMM, LAMMPS, AMBER, GENESIS, Tinker, Desmond, and of most relevance, GROMACS. Due to the complex nature of atomistic ion channel systems, developing the simulation environments by oneself can be rather laborious. Thus Charmm-Gui serves the role of readily developing these complex biological systems through a stream-lined interface. More information can be found <a href="https://www.charmm-gui.org/">here</a>.
 
 ### ChimeraX
 
@@ -39,7 +39,7 @@ ChimeraX is computational biology visualization program used in rendering protei
 
 ### GROMACS
 
-GROMACS is a high performance suite of tools molecular dynamic simulation and output analysis. GROMACS is highly versatile, functional, and compatible with virtually every step of the process for ion channel simulation construction and operation. Insane, Martini3, and Vermouth all rely on the platform of GROMACS for many operations. Simulation scripts for GROMAC's simulations can eb found here, while more information on other uses can be found here.
+GROMACS is a high performance suite of tools molecular dynamic simulation and output analysis. GROMACS is highly versatile, functional, and compatible with virtually every step of the process for ion channel simulation construction and operation. Insane, Martini3, and Vermouth all rely on the platform of GROMACS for many operations. Simulation scripts for GROMAC's simulations can be found here, while more information on other uses can be found here.
 
 ### Insane
 
@@ -65,7 +65,7 @@ Martinize2 is a software package aimed at producing coarse grained structures fo
 
 ## Methodology
 
-Below is an overview of the process of construction of ion channel and simulation environments in atomistic. All tools used are referenced above. Additionally, relevant tutorials are provided below.
+Below is an overview of the process of construction of ion channel and simulation environments using atomistic and coarse grain methodologies. All tools used are referenced above. Additionally, relevant tutorials are papers are provided below.
 
 ### Atomistic
 
@@ -79,7 +79,7 @@ Below is an overview of the process of construction of ion channel and simulatio
 
 ## Resources
 
-### Tuturials
+### Tutorials
 
 ### Relevant Papers
 
