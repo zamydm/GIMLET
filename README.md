@@ -21,8 +21,6 @@
   * [Coarse Grain](#coarse-grain)
 - [Analysis](#analysis)
 - [Resources](#resources)
-  * [Tutorials](#tutorials)
-  * [Relevant Papers](#relevant-papers)
 - [References](#references)
 
 ## Overview
@@ -69,19 +67,24 @@ Below is an overview of the process of construction of ion channel and simulatio
 
 ### Atomistic
 
-
+1. Protein selection and repair:
+2. Membrane insertion:
+3. Solvation:
+4. Simulation:
 
 ### Coarse Grain
 
-
+1. Protein selection and repair:
+2. Coarse graining:
+3. Membrane insertion:
+4. Solvation:
+5. Simulation: 
 
 ## Analysis
 
 ## Resources
 
-### Tutorials
 
-### Relevant Papers
 
 ## References
 
@@ -109,5 +112,7 @@ Below is an overview of the process of construction of ion channel and simulatio
   + [Souza, P.C.T., Alessandri, R., Barnoud, J. et al. Martini 3: a general purpose force field for coarse-grained molecular dynamics. Nat Methods 18, 382–388 (2021).](https://doi.org/10.1038/s41592-021-01098-3)
 - PyMol:
   + [The PyMOL Molecular Graphics System, Version 3.0 Schrödinger, LLC.](https://pymol.org/#page-top)
+- Simulation Parameters:
+  + 
 - Vermouth-Martini2:
   + [P C KroonF GrunewaldJ BarnoudM van TilburgP C T SouzaT A WassenaarS J Marrink (2023) Martinize2 and Vermouth: Unified Framework for Topology GenerationeLife12:RP90627](https://doi.org/10.7554/eLife.90627.1)
