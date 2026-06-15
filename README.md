@@ -1,5 +1,5 @@
 <div align="center";>
-  <h1>Ion Channel Simulation and Analysis Guide</h1>
+  <h1>SHANDY - Simulation of ion cHannels AND analYsis</h1>
   
   Welcome! This is my repository for a streamlined and reproducable method of ion channel simulation and analysis through atomistic and coarse grained means.
 </div> 
@@ -69,20 +69,23 @@ Below is an overview of the process of construction of ion channel and simulatio
 
 ### Atomistic
 
-1. Protein selection and repair:
-2. Membrane insertion:
-3. Solvation:
-4. Simulation:
+1. Protein selection: To begin simulating an ion channel, the first step is to select the ion channel of interest. This is best done by finding a paper of interest and looking for their protein 
+2. Protein repair: Once a protein is selected, the next step is to repair any missing elements. Missing elements 
+3. Membrane insertion: 
+4. Solvation:
+5. Simulation:
 
 ### Coarse Grain
 
-1. Protein selection and repair:
+1. Protein selection and repair: For coarse graining, this follows the same methodology as for atomistic simulation.
 2. Coarse graining:
 3. Membrane insertion:
 4. Solvation:
 5. Simulation: 
 
 ## Analysis
+
+
 
 ## Resources
 
