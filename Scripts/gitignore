@@ -1,0 +1,52 @@
+# =============================================================================
+# Shared .gitignore for this repository.
+#
+# Git only recognises this exact filename, so there is one of these at the
+# repository root covering all notebooks - it cannot be renamed per notebook.
+# =============================================================================
+
+# --- Generated output ---------------------------------------------------------
+# Each notebook writes to its own subdirectory, results/<notebook_slug>/,
+# so this one rule covers every notebook's figures and generated structures.
+results/
+
+# --- Input and demo data ------------------------------------------------------
+# Simulation data is large and usually lives outside the repository; the
+# notebooks locate it via DATA_ROOT or the MD_DATA_ROOT environment variable.
+# demo_data/ is regenerated on demand by any notebook in demo mode.
+data/
+demo_data/
+
+# --- GROMACS binaries and bulky run output ------------------------------------
+# NOTE: .xvg files are small and text-based. They are NOT ignored here, so a
+# curated set can be committed deliberately to make the notebooks reproducible
+# straight from the repository. Add "*.xvg" below if you would rather not.
+*.xtc
+*.trr
+*.edr
+*.tpr
+*.cpt
+*.gro
+*.log
+*_prev.cpt
+#*.xvg
+
+# HOLE leaves scratch files in the working directory
+hole*.sph
+*.vmd_surface
+
+# --- Jupyter ------------------------------------------------------------------
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# --- Python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# --- Editors and OS -----------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
