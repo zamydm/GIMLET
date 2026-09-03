@@ -1,0 +1,36 @@
+# Python dependencies for every notebook in this repository.
+#
+# This file is shared: keep ONE requirements.txt at the repository root rather
+# than one per notebook, and add to it when a new notebook needs a new package.
+# Install with:
+#     pip install -r requirements.txt
+#
+# Versions are lower bounds known to work; newer releases are expected to be fine.
+
+# --- Core analysis stack (all notebooks) ---
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
+
+# --- Trajectory handling (ProteinChannel, ProteinLipidNetwork,
+#     ProteinProteinNetwork) ---
+MDAnalysis>=2.7
+
+# --- Tabular data and statistical plots (ProteinLipidNetwork) ---
+pandas>=2.0
+seaborn>=0.13
+
+# --- Pore profiling (ProteinChannel) ---
+# mdahole2 is only a Python wrapper. It calls the external HOLE program, which
+# is separately licensed and NOT installable with pip. Install it from
+# https://www.holeprogram.org/ and put the `hole` binary on PATH.
+# ProteinChannel runs in demo mode without it.
+mdahole2>=0.5
+
+# --- Notebook environment ---
+jupyterlab>=4.0
+ipykernel>=6.0
+
+# --- Optional extras ---
+# nbstripout>=0.7        # strips notebook outputs automatically before commit
+# tqdm>=4.66             # progress bars for long loops over many trajectories
