@@ -4,7 +4,7 @@
   <h1>GIMLET: GROMACS Ion-channel Multiscale Library: Examples & Tools</h1>
 
   <p>
-    A Github repository guiding the simulation and analysis of ion channels through coarse grained and atomistic means in GROMACS.
+    A repository for a streamlined and reproducible method of ion channel simulation and analysis through atomistic and coarse grained means in GROMACS.
   </p>
 
 </div>
