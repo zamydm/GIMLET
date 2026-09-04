@@ -7,8 +7,7 @@
     A Github repository guiding the simulation and analysis of ion channels through coarse grained and atomistic means in GROMACS.
   </p>
 
-<\div>
-<br />
+</div>
 
 <!-- Table of Contents -->
 # :notebook_with_decorative_cover: Table of Contents
