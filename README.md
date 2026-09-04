@@ -1,5 +1,5 @@
 <div align="center">
 
-  <h1>SHANDY: Simulation </h1>
+  <h1>GIMLET - GROMACS Ion-channel Multiscale Library: Examples & Tools</h1>
 
 <\div>
