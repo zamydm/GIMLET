@@ -14,7 +14,7 @@
 - [Overview](#overview)
 - [Software Guide](#software-guide)
   * [CHARMM-GUI](#charmm-gui)
-  * [Charmm36](#charmm36)
+  * [CHARMM36](#charmm36)
   * [ChimeraX](#chimerax)
   * [GROMACS](#gromacs)
   * [Hole2](#hole2)
@@ -39,11 +39,11 @@
 ### CHARMM-GUI
 CHARMM-GUI is a software that has been developed to provide a web-based graphical user interface to generate various input files and molecular systems to facilitate and standardize the usage of common and advanced simulation techniques. Invaluable due to the range of capabilities of the software and most relevant to ion channel simulation due to its capability of building complex, atomistic membranes, the software is an excellent addition to an ion channel analysis pipeline. More information on the software can be found [here](https://charmm-gui.org/).
 
-### Charmm36
-The Charmm36 forcefield . More information on the forcefield and how to download it can be found [here](https://mackerell.umaryland.edu/charmm_ff.shtml).
+### CHARMM36
+The Charmm36 forcefield is a modern atomistic forcefield useful for the simulation of biomolecular systems. Due to its integration into CHARMM-GUI and its support in GROMACS, the CHARMM36 forcefield is an excellent forcefield for ion channel simulation. More information on the forcefield and how to download it can be found [here](https://mackerell.umaryland.edu/charmm_ff.shtml).
 
 ### ChimeraX
-
+ChimeraX is an extensible program for the interactive visualization and analysis of molecular structures and trajectories. While PyMOL is better used for visualization of protein structures, ChimeraxX's integration with Modeller makes it a useful software for the easy construction of missing loops for ion channels. More information on ChimeraX can be found [here](https://www.cgl.ucsf.edu/chimerax/).
 
 ### GROMACS
 GROMACS is a versatile package to perform molecular dynamics simulations. Used in ion channel study for system assembly, solvation, simulation, and analysis, GROMACS serves as the cornerstone of ion channel work. More information about GROMACS can be found [here](https://www.gromacs.org/).
@@ -104,6 +104,16 @@ Vermouth (VERsatile, MOdular, and Universal Tranformation Helper) is the python 
 - T.P. Brown, D.E. Santa, B.A. Berger, L. Kong, N.J. Wittenberg, and W. Im (2024) CHARMM GUI Membrane Builder for oxidized phospholipid membrane modeling and simulation. Curr. Opin. Struct. Biol. 86:102813
 - S. Feng, S. Park, Y.K. Choi, and W. Im (2024) CHARMM-GUI Membrane Builder: Past, Current, and Future Developments and Applications. J. Chem. Theory Comput. 19:2161-2185
 - S.J. Park and W. Im (2026) CHARMM-GUI Quick Bilayer: Simple and Intuitive One-Stop Membrane Bilayer Builder. J. Mol. Biol. in press 
+
+### CHARMM36
+- Vanommeslaeghe, K. Hatcher, E. Acharya, C. Kundu, S. Zhong, S. Shim, J. E. Darian, E. Guvench, O. Lopes, P. Vorobyov, I. and MacKerell, Jr. A.D. "CHARMM General Force Field (CGenFF): A force field for drug-like molecules compatible with the CHARMM all-atom additive biological force fields," Journal of Computational Chemistry 31: 671-90, 2010, PMC2888302
+- Klauda, J.B., Venable, R.M., Freites, J.A., O'Connor, J.W., Tobias, D.J., Mondragon-Ramirez, C., Vorobyov, I., MacKerell, Jr., A.D., and Pastor, R.W. "Update of the CHARMM All-Atom Additive Force Field for Lipids: Validation on Six Lipid Types," Journal of Physical Chemistry B, 114: 7830-7843, 2010
+- Vanommeslaeghe, K., and MacKerell Jr., A.D., "Automation of the CHARMM General Force Field (CGenFF) I: bond perception and atom typing," Journal of Chemical Informationa and Modeling, 52: 3144-3154, 2012, PMC3528824
+- Vanommeslaeghe, K., Raman, E.P., and MacKerell Jr., A.D., "Automation of the CHARMM General Force Field (CGenFF) II: Assignment of bonded parameters and partial atomic charges, Journal of Chemical Informationa and Modeling, 52: 3155-3168, 2012, PMC3528813
+- Yu, W., He, X., Vanommeslaeghe, K. and MacKerell, A.D., Jr., "Extension of the CHARMM General Force Field to Sulfonyl-Containing Compounds and Its Utility in Biomolecular Simulations," Journal of Computational Chemistry, 33: 2451-2468, 2012, PMC3477297
+- Best, R.B., Zhu, X., Shim, J., Lopes, P.E.M., Mittal, J., Feig, M., and MacKerell Jr., A.D. "Optimization of the additive CHARMM all-atom protein force field targeting improved sampling of the backbone phi, psi and side-chain chi1 and chi2 dihedral angles," Journal of Chemical Theory and Computation, 8: 3257-3273, 2012, PMC3549273
+- Soteras Gutierrez, I., Lin, F.-Y., Vanommeslaeghe, K., Lemkul, J.A., Armacost, K.A., Brooks, Cl., III, and MacKerell, A.D., Jr., "Parametrization of Halogen Bonds in the CHARMM General Force Field: Improved treatment of ligand-protein interactions," Bioorganic & Medicinal Chemistry, In Press, 2016
+- Huang, J., Rauscher, S., Nawrocki, G., Ran, T., Feig, M, de Groot, B.L., Grubmuller, H., and MacKerell, A.D., Jr., "CHARMM36m: An Improved Force Field for Folded and Intrinsically Disordered Proteins," Nature Methods, 14:71-73, 2016, PMC5199616
 
 ### Hole2
 - Smart, O. S.; Neduvelil, J. G.; Wang, X.; Wallace, B. A.; Sansom, M. S. P. HOLE: A Program for the Analysis of the Pore Dimensions of Ion Channel Structural Models. Journal of Molecular Graphics 1996, 14 (6), 354–360. https://doi.org/10.1016/s0263-7855(97)00009-x
