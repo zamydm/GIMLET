@@ -1,7 +1,7 @@
 <!-- Title, overview, and badges. -->
 <div align="center">
 
-  <img src=""/>
+  <img src="https://github.com/zamydm/GIMLET/blob/main/Images/GIMLET.png"/>
 
   <h1>GIMLET: GROMACS Ion-channel Multiscale Library: Examples & Tools</h1>
 
