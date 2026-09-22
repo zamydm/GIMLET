@@ -550,11 +550,13 @@ Notes:
 
 #### Radius of Gyration
 
+#### Pore Analysis
+
 #### Contact Analysis
 
 #### ChACRA
 
-#### Pore Analysis
+#### Lipid Analysis
 
 ## Contact
 
