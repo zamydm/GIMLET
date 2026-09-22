@@ -71,13 +71,279 @@ Vermouth (VERsatile, MOdular, and Universal Tranformation Helper) is the python 
 
 ## Simulation Guide 
 
+The workflow below is written to be channel-agnostic. All structure names, file names, box dimensions, lipid counts, and ion counts are placeholders written as `<...>` or as generic names such as `protein.pdb` and `system.gro`. Substitute the values appropriate to the channel and membrane environment being studied.
+
+The pipeline has three stages that share a common starting point: a repaired protein structure is prepared once, then built into either an atomistic system, a coarse-grained system, or both.
+
 ### Protein Repair
+
+Experimental structures of ion channels are frequently missing loops, termini, and side chains. These gaps must be modeled before the structure can be simulated or else the results will be flawed. While my methodology is built upon the usage of modeller, more modern softwares like AlphaFold are equally if not more viable.
+
+**1. Obtain the structure**
+
+Download the most complete and highest-resolution experimental structure of the channel available from the [RCSB PDB](https://www.rcsb.org/). Where several depositions exist, prefer the most recent one with the fewest unresolved residues and the conformational state of interest (for example open, closed, or desensitized). This selection method will ensure the highest accuracy of simulation to real physiological conditions.
+
+**2. Identify missing regions in ChimeraX**
+
+Open the structure and display the sequence for each chain to locate unresolved residues:
+
+```
+seq chain /A
+```
+
+Repeat for each chain in the assembly. For a homomultimeric channel, the same gaps usually appear in every subunit, and each subunit can be repaired independently.
+
+**3. Model the missing loops**
+
+Use `Tools → Sequence → Model Loops` to call Modeller through ChimeraX, with the following settings:
+
+- Model only the internal structure — that is, the unresolved regions internal to the chain rather than the disordered termini, which generally should not be invented as these regions are largely nonphysical.
+- Keep one adjacent flexible residue on each side of the gap so that the modeled loop can be joined to the resolved structure without strain. Leaving strain within the simulation can cause simulations to crash prematurely.
+- Set the number of models as high as can be generated without the ChimeraX session disconnecting. More models means better sampling of loop conformations.
+- Select the model with the most negative zDOPE score, which is the best-scoring model by Modeller's statistical potential.
+- Save the selected model as a `.pdb` file.
+
+**4. Merge separately modeled chains**
+
+If loops were modeled chain by chain, the resulting structures must be recombined into a single file. In PyMOL:
+
+```
+load chain_a.pdb
+load chain_b.pdb
+select all
+save repaired_protein.pdb
+```
+
+PyMOL saves to the home directory by default unless a full path is given.
+
+**5. Clean the structure**
+
+Remove `HETATM` records — crystallographic waters, detergents, co-purified lipids, ligands, and ions — unless a given heteroatom is explicitly part of the intended model. These records are a common source of atom clashes and of parameterization failures later in the pipeline.
+
+The output of this stage is a single, gap-free `repaired_protein.pdb` used as the input for both the atomistic and the coarse-grained branches below.
 
 ### Atomistic
 
+The atomistic branch uses CHARMM-GUI to build and equilibrate a membrane-embedded system in the CHARMM36 force field, then finishes system preparation in GROMACS.
+
+#### Building the membrane system in CHARMM-GUI
+
+Upload `repaired_protein.pdb` to the CHARMM-GUI Membrane Builder and work through the builder with the following considerations.
+
+**Protonation.** The default pH of 7.00 is appropriate for a physiological system unless the study specifically targets pH-dependent gating.
+
+**Orientation.** Use PPM 2.0 to orient the protein relative to the bilayer normal. This places the transmembrane region in agreement with hydrophobic-belt expectations and avoids generating a protein that intersects the bilayer. Apply a small translation along z (on the order of a few angstroms) if the resulting placement is offset relative to where the transmembrane helices should sit. Include pore water so that the conduction pathway is hydrated from the start rather than relying on water to diffuse in during equilibration.
+
+**Box dimensions.** The lateral dimensions must be large enough that the protein cannot interact with its own periodic image. Allow a minimum of 10 Å between the protein and the box edge beyond the nonbonded cutoff. The exact dimensions will depend on the exact protein selected. Note that larger dimensions, while preventing self-interaction of the protein, also increases the computational cost of simulation. Add approximately 30 Å of water on each side of the bilayer to prevent the periodic images from interacting through the z-axis.
+
+**Lipid composition.** Choose a lipid mixture that reflects the native membrane environment of the channel being studied, and build the leaflets asymmetrically where the experimental evidence supports it. Enter lipids by absolute number rather than by ratio. Specifying numbers directly is what allows the box to be driven to the target dimensions while keeping the upper and lower leaflets equal in area, which prevents the bilayer from developing a spurious curvature or tension at the start of the simulation.
+
+**Salt.** Do not add salt in CHARMM-GUI. Ions are added manually with `gmx genion` in the next stage. CHARMM-GUI jobs cannot be re-run with modifications, so any change to the ionic conditions would otherwise require rebuilding the entire system from scratch — an expensive proposition when several ionic conditions are being compared.
+
+**Equilibration and output.** Run the builder's NPT equilibration at the physiological temperature relevant to the tissue being modeled. Download the GROMACS input set; the LAMMPS, NAMD, and OpenMM sets can be saved at the same time if the system is to be cross-validated in another engine.
+
+#### Finishing the system in GROMACS
+
+**1. Neutralize the system**
+
+Run `gmx genion` first simply to determine the net charge of the system, then again to neutralize it. A `.tpr` is required as input, so generate one from a minimal ion-placement `.mdp`:
+
+```bash
+gmx grompp -f ions.mdp -c system.gro -p topol.top -o ions.tpr
+gmx genion -s ions.tpr -o system_neutral.gro -p topol.top -pname SOD -nname CLA -neutral
+```
+
+Ions are placed by replacing water molecules. Most common and relevant ion species for ion channel simulation are Na+, K+, and Cl- given the natural frequency of these ions. Addiitional/different ions can be added if desired; determine the subject of study  Confirm that the force field and ion topology `.itp` files referenced in `topol.top` are updated after every run, including failed ones, since a partially written topology will silently carry over.
+
+**2. Add ions to the target concentration**
+
+Repeat `grompp` and `genion` once per ion species, chaining the output of each call into the next. Each species is added as a matched number of cations and anions on top of the already-neutralized system:
+
+```bash
+gmx grompp -f ions.mdp -c system_neutral.gro -p topol.top -o ions_species1.tpr
+gmx genion -s ions_species1.tpr -o system_species1.gro -p topol.top -np <N> -pname SOD -nn <N> -nname CLA
+
+gmx grompp -f ions.mdp -c system_species1.gro -p topol.top -o ions_species2.tpr
+gmx genion -s ions_species2.tpr -o system_ions.gro -p topol.top -np <M> -pname POT -nn <M> -nname CLA
+```
+
+Calculate `<N>` and `<M>` from the target molar concentration and the solvent volume of the box, and record the resulting ion counts for each condition so that the composition of every system in a series is reproducible. Make sure the topology includes an `.itp` entry for every ion species added.
+
+**3. Build index groups**
+
+Analysis and the temperature/pressure coupling groups in the `.mdp` files both depend on a well-defined index file:
+
+```bash
+gmx make_ndx -f system_ions.gro -o index.ndx
+```
+
+Define three working groups — `Protein`, `Membrane`, and `Solvent`. The membrane group is the union of every lipid species group, and the solvent group is the union of water and all ion groups. Group numbers are assigned per system and will not match between builds, so read them off the listing that `make_ndx` prints rather than reusing numbers from a previous system:
+
+```
+13 | 14 | 15 | 16 | 17 | 18 | 19
+name <new_group_number> Membrane
+
+20 | 21 | 22 | 23
+name <new_group_number> Solvent
+```
+
 ### Coarse Grain
 
-### Analysis
+The coarse-grained branch maps the repaired atomistic structure into the Martini 3 force field, equilibrates the protein in solvent, and then rebuilds it into a bilayer with insane. Working at coarse-grained resolution extends the accessible timescale by orders of magnitude at a fraction of the cost, which is what makes long-timescale gating and lipid-interaction studies tractable.
+
+#### Mapping the protein with Martinize2
+
+Review the available options first, since the useful flags vary by protein and by Martini release:
+
+```bash
+martinize2 -h
+```
+
+Then map the repaired structure:
+
+```bash
+martinize2 -f repaired_protein.pdb -x protein_cg.pdb -o protein_cg.top \
+  -ff martini3001 -dssp -elastic -p backbone -pf 1000
+```
+
+Notes on the flags and on the files this produces:
+
+- `-dssp` assigns secondary structure, which Martini uses to set backbone bonded parameters.
+- `-elastic` applies an elastic network. Add or tune it when the coarse-grained protein does not maintain the tertiary structure expected from the atomistic model; without it, large multidomain channels tend to drift apart.
+- `-p backbone -pf 1000` writes position restraints on the backbone beads with a force constant of 1000 kJ mol⁻¹ nm⁻².
+- Delete any remaining `HETATM` atoms before mapping. They frequently produce clashes that cause Martinize2 to fail or to map nonsense beads.
+
+Edit the generated `.itp` so that the hard-coded restraint force constant becomes an adjustable one that can be switched on and off, and scaled, from the `.mdp` file:
+
+```
+[ position_restraints ]
+#ifdef POSRES
+#ifndef POSRES_FC
+#define POSRES_FC 1000.00
+#endif
+1    1    POSRES_FC    POSRES_FC    POSRES_FC
+#endif
+```
+
+#### Equilibrating the coarse-grained protein
+
+Equilibrate the protein in solvent before inserting it into a bilayer, so that any strain introduced by the mapping is relaxed outside the membrane.
+
+**1. Build a solvated box with insane**
+
+```bash
+insane -f protein_cg.pdb -o protein_solvated.gro -p protein_solvated.top \
+  -x <X> -y <Y> -z <Z> -center -sol W -salt <concentration>
+```
+
+This places the protein in a box of the given dimensions (in nm), centers it, and solvates it with Martini water and ions. Update the `.top` and `.gro` files afterwards so the protein is properly included and so that ion names match the Martini 3 naming convention.
+
+**2. Build an index file and minimize**
+
+```bash
+gmx make_ndx -f protein_solvated.gro -o index.ndx
+gmx grompp -f energy_minim.mdp -c protein_solvated.gro -p protein_solvated.top -o em.tpr
+gmx mdrun -v -deffnm em
+```
+
+Define a `Solvent` group combining water and ions, again reading group numbers from the `make_ndx` listing.
+
+**3. Equilibrate**
+
+```bash
+gmx grompp -f equilibration.mdp -c em.gro -p protein_solvated.top -n index.ndx \
+  -o equilibration.tpr -maxwarn 1
+gmx mdrun -v -deffnm equilibration
+```
+
+This relaxes the structure further so that it is stable when transferred into the membrane system.
+
+**4. Extract the equilibrated protein**
+
+```bash
+gmx trjconv -s equilibration.tpr -f equilibration.gro -o protein_cg_stable.pdb -pbc mol -center
+```
+
+The extracted structure is the input for membrane insertion.
+
+#### Inserting the protein into a bilayer
+
+```bash
+insane -f protein_cg_stable.pdb -o system_cg.gro -p topol.top \
+  -x <X> -y <Y> -z <Z> -center -dm <z_shift> \
+  -l <LIPID>:<n> -l <LIPID>:<n> -u <LIPID>:<n> -u <LIPID>:<n> \
+  -sol W -salt 0.00 \
+  -alname <LIPID> -alhead '<head beads>' -allink "<link beads>" -altail "<tail beads>"
+```
+
+- `-l` and `-u` specify the lower and upper leaflet composition. Use the same lipid types and the same leaflet asymmetry as the atomistic system so that the two resolutions are directly comparable.
+- `-dm` shifts the bilayer along z. Use it to match the membrane position produced by CHARMM-GUI in the atomistic build.
+- `-alname`, `-alhead`, `-allink`, and `-altail` define lipids that are not in the insane library by giving their bead topology explicitly. Any custom lipid used in the atomistic membrane will usually need to be defined this way.
+- Set the salt concentration to zero here. insane only adds NaCl, so all ion species are added afterwards with `gmx genion`, which allows mixed-salt conditions to be built.
+- Confirm that the protein is correctly oriented in the bilayer before continuing; an inverted or tilted insertion will not recover during equilibration.
+
+#### Restraining the upper leaflet
+
+Unrestrained coarse-grained bilayers of this size tend to flex and sway on long timescales, which contaminates membrane-protein contact analysis. Add an optional z-restraint to a subset of upper-leaflet lipids by defining a copy of one phospholipid species under a new residue name — identical parameters, plus the restraint block — and substituting it for a fraction of that species in the upper leaflet:
+
+```
+#ifdef DPOS_Z_RES
+ [ position_restraints ]
+ ; ai  funct  fcx    fcy    fcz
+   2    1     0      0      POS_Z_RES
+#endif
+```
+
+Guidelines for applying the restraint:
+
+- Apply it only in the upper leaflet. Restraining both leaflets restricts the natural expansion and undulation of the bilayer.
+- Apply it to phosphate beads, which remain within their own leaflet. Do not restrain sterols, diglycerides, or ceramides, which flip between leaflets and would be held in place unphysically.
+- Restrain at least roughly 20% of the upper-leaflet lipids to suppress large-scale flexing; fewer anchor points are not enough to hold the leaflet flat.
+
+#### Defining and adding ions
+
+Ion names must match the `.itp` definitions in the Martini 3 topology. Species that are not distributed with the force field need a new molecule type. For example, a distinct monovalent cation can be defined as:
+
+```
+;;;;;; Potassium ion
+[moleculetype]
+; molname     nrexcl
+  PK          1
+
+[atoms]
+;id    type    resnr    residu    atom    cgnr    charge    mass
+ 1     TQ5     1        ION       PK      1       1.0       39.098
+```
+
+Then add each species in turn, exactly as in the atomistic branch:
+
+```bash
+gmx grompp -f ions.mdp -c system_cg.gro -p topol.top -o ions_species1.tpr
+gmx genion -s ions_species1.tpr -o system_cg_species1.gro -p topol.top -np <N> -pname NA -nn <N> -nname CL
+
+gmx grompp -f ions.mdp -c system_cg_species1.gro -p topol.top -o ions_species2.tpr
+gmx genion -s ions_species2.tpr -o system_cg_ions.gro -p topol.top -np <M> -pname PK -nn <M> -nname CL
+```
+
+Record the ion counts used for each condition so the coarse-grained and atomistic systems can be matched.
+
+#### Building index groups
+
+```bash
+gmx make_ndx -f system_cg_ions.gro -o index.ndx
+```
+
+As in the atomistic branch, define `Protein`, `Membrane`, and `Solvent` groups by combining the individual lipid, water, and ion groups, then name them:
+
+```
+13 | 14 | 15 | 16 | 17 | 18 | 19
+name <new_group_number> Membrane
+
+21 | 22 | 23 | 24
+name <new_group_number> Solvent
+```
+
+Group numbers differ between the atomistic and coarse-grained systems and between builds, so always take them from the current `make_ndx` listing.
 
 ## Contact
 
