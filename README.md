@@ -35,40 +35,161 @@
 
 ## Overview
 
+GIMLET is a complete, reproducible workflow for simulating a membrane-embedded ion channel in GROMACS, from an experimental structure to publication-ready analysis. It covers every stage in between — repairing the structure, building the membrane system, running minimization, equilibration, and production, and analysing the resulting trajectories — and does so at two resolutions:
+
+- **Atomistic** simulations in the CHARMM36m force field resolve individual side chains, hydrogen bonds, and pore hydration. They are the reference for structural detail, but their cost limits them to hundreds of nanoseconds for a system the size of a membrane-embedded channel.
+- **Coarse-grained** simulations in the Martini 3 force field represent roughly four heavy atoms as a single bead, reaching microsecond timescales at a fraction of the cost. They capture slower processes, such as large-scale conformational change and lipid redistribution around the channel, that atomistic runs cannot sample.
+
+The two resolutions are built from the same repaired structure, placed in matching membranes, and analysed with the same notebooks, so their results can be compared directly.
+
+The workflow is designed around a **grid of simulation conditions**, such as a set of temperatures at each of several salt concentrations. Each condition is built and equilibrated as an independent system, and the analysis identifies which structural features — residue flexibility, pore dimensions, residue–residue contacts, lipid binding — respond to the scanned variables. Nothing in it is specific to one channel: structure names, box dimensions, lipid compositions, ion counts, and residue numbering are all left as inputs, and every channel-specific value used by the analysis is defined in a single configuration file.
+
+### Workflow
+
+```mermaid
+flowchart TD
+    A["Experimental structure<br/>(RCSB PDB)"] --> B["Protein Repair<br/>ChimeraX + Modeller, PyMOL"]
+    B --> C["Atomistic build<br/>CHARMM-GUI, CHARMM36m"]
+    B --> D["Coarse-grained build<br/>Martinize2, Insane, Martini 3"]
+    C --> E["Ions and index groups<br/>GROMACS"]
+    D --> E
+    E --> F["Simulate<br/>Minimization, 5-step equilibration, NPT production"]
+    F --> G["Analysis<br/>GROMACS tools, MDAnalysis, HOLE"]
+```
+
+The [Simulation Guide](#simulation-guide) follows this diagram from top to bottom:
+
+1. **[Protein Repair](#protein-repair)** models the loops missing from the experimental structure and produces a single, gap-free structure used by both resolutions.
+2. **[Atomistic](#atomistic)** builds the all-atom membrane system in CHARMM-GUI and finishes it in GROMACS with ions and index groups.
+3. **[Coarse Grain](#coarse-grain)** maps the structure to Martini 3, equilibrates the protein in solvent, inserts it into a matching bilayer, and adds ions and index groups.
+4. **[Simulate](#simulate)** runs the same minimization, equilibration, and production sequence at either resolution, with the parameters for each laid out step by step.
+5. **[Analysis](#analysis)** computes RMSD, RMSF, radius of gyration, pore profiles, residue contact networks, contact-mode (ChACRA) analysis, and lipid interactions across the condition grid.
+
+### Before you start
+
+Working through the full workflow requires:
+
+- **A CHARMM-GUI account** to build the atomistic membrane system.
+- **A Modeller license key**, which is free for academic use, to model missing loops through ChimeraX.
+- **A GROMACS installation on a GPU-equipped cluster.** Production runs of hundreds of nanoseconds (atomistic) and several microseconds (coarse grained) per condition are impractical on a workstation, and the commands in this guide are written for a Slurm scheduler with an MPI build of GROMACS.
+- **A Python environment** for Martinize2, Insane, and the analysis notebooks.
+- **HOLE**, installed separately, for pore analysis.
+
+The [Software Guide](#software-guide) below describes what each program does in the workflow and what to watch for when setting it up. For reproducibility, record the version of each program used alongside your results — force field ports, Martinize2 defaults, and GROMACS `.mdp` behaviour have all changed between releases.
+
 ## Software Guide
 
+The table summarizes where each program enters the workflow. The entries that follow describe what it is used for and the practical points that matter when following this methodology.
+
+| Software | Stage | Used for |
+|---|---|---|
+| [ChimeraX](#chimerax) + [Modeller](#modeller) | Protein Repair | Modelling missing loops |
+| [PyMOL](#pymol) | Protein Repair, Analysis | Merging repaired chains; visual checks; mapping results onto the structure |
+| [CHARMM-GUI](#charmm-gui) | Atomistic build | Membrane orientation, bilayer construction, solvation, GROMACS inputs |
+| [CHARMM36](#charmm36) | Atomistic build, Simulate | All-atom force field |
+| [Vermouth-Martinize2](#vermouth-martinize2) | Coarse-grained build | Mapping the protein to Martini 3 and writing its topology |
+| [Insane](#insane) | Coarse-grained build | Solvating the protein; building the coarse-grained bilayer |
+| [Martini3](#martini3) | Coarse-grained build, Simulate | Coarse-grained force field |
+| [GROMACS](#gromacs) | Every stage after building | Ions, index groups, simulation, trajectory processing, basic analysis |
+| [MDAnalysis](#mdanalysis) | Analysis | Trajectory reading, contact and distance calculations |
+| [Hole2](#hole2) | Analysis | Pore radius profiles |
+| [Python Analysis Stack](#python-analysis-stack) | Analysis | Running the analysis notebooks |
+
 ### CHARMM-GUI
-CHARMM-GUI is a software that has been developed to provide a web-based graphical user interface to generate various input files and molecular systems to facilitate and standardize the usage of common and advanced simulation techniques. Invaluable due to the range of capabilities of the software and most relevant to ion channel simulation due to its capability of building complex, atomistic membranes, the software is an excellent addition to an ion channel analysis pipeline. More information on the software can be found [here](https://charmm-gui.org/).
+[CHARMM-GUI](https://charmm-gui.org/) is a web-based platform for building molecular systems and generating simulation inputs for a range of MD engines. In this workflow, its **Membrane Builder** constructs the atomistic system: it orients the repaired channel in the membrane using the PPM 2.0 server, builds an asymmetric bilayer of the chosen lipid composition around it, hydrates the pore, solvates the box, and writes a complete set of GROMACS inputs.
+
+That output includes the CHARMM36m force field files, the system topology, and a series of equilibration `.mdp` files whose position-restraint definitions (`POSRES_FC_BB`, `POSRES_FC_SC`, `POSRES_FC_LIPID`, `DIHRES_FC`) are the ones the [Simulate](#simulate) section relaxes step by step.
+
+Practical points:
+
+- An account is required, and building a large channel system can take from several minutes to hours at each stage of the builder.
+- A completed job cannot be reopened and modified. Any change to the input means rebuilding from the start, which is why this workflow adds no salt in CHARMM-GUI and instead adds ions afterwards with `gmx genion`. One CHARMM-GUI build then serves every ionic condition.
+- Specify lipids by number rather than by ratio, so that the box can be driven to the target size while keeping the two leaflets equal in area.
 
 ### CHARMM36
-The Charmm36 forcefield is a modern atomistic forcefield useful for the simulation of biomolecular systems. Due to its integration into CHARMM-GUI and its support in GROMACS, the CHARMM36 forcefield is an excellent forcefield for ion channel simulation. More information on the forcefield and how to download it can be found [here](https://mackerell.umaryland.edu/charmm_ff.shtml).
+[CHARMM36m](https://mackerell.umaryland.edu/charmm_ff.shtml) is the all-atom additive force field used for the atomistic simulations, together with the CHARMM-modified TIP3P water model. CHARMM36m refines the CHARMM36 protein parameters for better balance between folded and disordered states, and the CHARMM36 lipid parameters are among the most extensively validated for membrane simulation.
+
+CHARMM-GUI writes the GROMACS port of the force field into the system it builds, so no separate download is needed when following this workflow. If you build a system by other means, the GROMACS port is available from the MacKerell lab website linked above.
+
+The force field is parameterized for particle-mesh Ewald electrostatics and specific van der Waals cutoff treatment; changing these settings changes membrane properties such as area per lipid. The settings used in this workflow are listed under [Atomistic parameters](#atomistic-parameters) in the Simulate section.
 
 ### ChimeraX
-ChimeraX is an extensible program for the interactive visualization and analysis of molecular structures and trajectories. While PyMOL is better used for visualization of protein structures, ChimeraxX's integration with Modeller makes it a useful software for the easy construction of missing loops for ion channels. More information on ChimeraX can be found [here](https://www.cgl.ucsf.edu/chimerax/).
+[ChimeraX](https://www.cgl.ucsf.edu/chimerax/) is a molecular visualization and analysis program from UCSF. In this workflow, it provides the interface to Modeller for repairing the experimental structure.
+
+The `seq chain` command displays each chain's sequence with unresolved residues marked, and **Tools → Sequence → Model Loops** sends the gaps to Modeller, either through the UCSF web service or a local Modeller installation. Both routes require a Modeller license key, which ChimeraX prompts for. The number of models generated and the choice of the best-scoring model by zDOPE are set in the same dialog.
+
+A multi-chain assembly can exceed what a web-service job will handle, in which case repair each chain separately and merge the results in PyMOL.
 
 ### GROMACS
-GROMACS is a versatile package to perform molecular dynamics simulations. Used in ion channel study for system assembly, solvation, simulation, and analysis, GROMACS serves as the cornerstone of ion channel work. More information about GROMACS can be found [here](https://www.gromacs.org/).
+[GROMACS](https://www.gromacs.org/) is the molecular dynamics engine for the entire workflow after system building. It is used to:
+
+- **Finish system preparation**, adding ions with `gmx genion` and building index groups with `gmx make_ndx`.
+- **Run every simulation**, preparing each stage with `gmx grompp` and running it with `gmx mdrun`.
+- **Process trajectories**, centring the protein and making molecules whole with `gmx trjconv`.
+- **Produce the basic analysis inputs**, using `gmx rms`, `gmx rmsf`, `gmx gyrate`, and `gmx energy`.
+
+Practical points:
+
+- The simulation commands in this guide use `gmx_mpi` launched with `srun`, for an MPI build on a Slurm cluster. On a workstation with a standard build, use `gmx` and drop `srun`.
+- A GPU-accelerated build is strongly recommended. Long production runs will exceed typical wall-time limits and must be restarted from checkpoints, as described in [Simulate](#simulate).
+- `.mdp` options and defaults change between GROMACS releases; for example, recent versions warn about the Berendsen barostat used in coarse-grained equilibration. Use one GROMACS version for every system in a study, and record it.
 
 ### Hole2
-Hole2 is a program for the analysis of the pore dimensions of an ion channel. Useful for studying the conformational dynamics of a protein either as a structure or over a trajectory, though it is limited in application through MDAHole2 to atomistic simulations currently. More information about Hole2 can be found at its Github [here](https://github.com/osmart/hole2) or at its website [here](https://www.holeprogram.org/). 
+[HOLE](https://www.holeprogram.org/) calculates the radius of an ion channel's pore as a function of position along the conduction pathway, by fitting the largest sphere that can pass through the protein at each point. Its source is on [GitHub](https://github.com/osmart/hole2). The narrowest point of the resulting profile determines whether an ion can pass, making HOLE the most direct structural measure of whether a gate is open.
+
+In this workflow, HOLE is driven from Python through `mdahole2`, an MDAnalysis extension that runs HOLE on every frame of a trajectory and collects the profiles. `mdahole2` is only a wrapper: the HOLE executable must be installed separately and be on `PATH`, or be pointed to with the `HOLE_EXECUTABLE` environment variable.
+
+HOLE assigns atomic radii by atom name from all-atom radius tables, so pore analysis applies to the atomistic simulations only.
 
 ### Insane
-Insane (INSert membrANE) is a versatile tool to build coarse-grained simulation systems containing solutes, lipid bilayers, and/or solvents. For the simulation of ion channels in coarse grain environments, which depend heavily on their membranes and surrounding solvents/ions, this tool excels in the complex process of protein insertion into a membrane, simple. More information about Insane can be found at their Github [here](https://github.com/Tsjerk/Insane).
+[Insane](https://github.com/Tsjerk/Insane) (INSert membrANE) builds coarse-grained systems by placing a protein in a lipid bilayer and filling the box with solvent. It is used twice in this workflow:
+
+- **To solvate the coarse-grained protein on its own** in a water box, so that strain introduced by the mapping can be relaxed before the protein is placed in a membrane.
+- **To insert the equilibrated protein into the bilayer.** Insane builds each leaflet separately, allowing an asymmetric membrane that matches the atomistic system.
+
+Practical points:
+
+- Lipids that are not in Insane's built-in library can be defined on the command line from their bead topology (`-alname`, `-alhead`, `-allink`, `-altail`).
+- Insane adds only NaCl, so salt is set to zero at insertion and all ion species are added afterwards with `gmx genion`, as in the atomistic workflow.
+- Always check the orientation of the protein in the finished bilayer before continuing. An inverted or tilted insertion will not correct itself during equilibration.
 
 ### Martini3
-Martini3 is a generic coarse-grained force field suited for molecular dynamics simulations of a broad variety of biomolecular systems. The force field has been parameterized in a systematic way, combining top-down and bottom-up strategies: non-bonded interactions are mostly based on the reproduction of experimental partitioning free energies between polar and apolar phases of a large number of chemical compounds, whereas bonded interactions are typically derived from reference all-atom simulations. The model is based on a four-to-one mapping scheme, i.e. on average four heavy atoms and associated hydrogens are represented by a single interaction center. This reduction of atomistic systems to coarse-grain allows for the extension of simulation time beyond what would be possible for full atomistic methodologies at a fraction of the computational cost, making them a useful tool for extended study of protein dynamics. More information on Martini3 can be found [here](https://cgmartini.nl/).
+[Martini 3](https://cgmartini.nl/) is the coarse-grained force field for the coarse-grained simulations. It maps, on average, four heavy atoms and their hydrogens to a single interaction site. Its non-bonded interactions are parameterized mainly against experimental partitioning free energies between polar and apolar phases, and its bonded interactions against reference all-atom simulations. The reduced number of particles and the smoother energy landscape allow a 20 fs timestep and microsecond-scale simulations, which is what makes the coarse-grained branch of this workflow useful for slow processes.
+
+Practical points:
+
+- The force field, lipid, and ion `.itp` files are downloaded from the Martini website and must be included in the system topology alongside the protein topology from Martinize2.
+- Species not distributed with the force field, such as a second monovalent cation, need their own molecule type defined in an `.itp` file; an example is given in [Coarse Grain](#coarse-grain).
+- Martini proteins do not maintain their tertiary structure without help; an elastic network, added by Martinize2, holds the fold. This also means that large-scale protein conformational change in coarse-grained simulations is limited by the elastic network, and conclusions about it should be checked against the atomistic simulations.
 
 ### MDAnalysis
-MDAnalysis is a suite of python tools for the analysis of molecular dynamics trajectories across multiple formats. Particularly helpful for contact analysis and its MDAHole integration, this library is critical for the effective analysis of ion channel simulations. More information on MDAnalysis can be found [here](https://www.mdanalysis.org/).
+[MDAnalysis](https://www.mdanalysis.org/) is a Python library for reading and analysing MD trajectories in most common formats, including GROMACS `.gro`, `.pdb`, `.tpr`, and `.xtc`. It is the foundation of the contact, lipid, and pore analysis notebooks, providing:
+
+- Atom selections, such as the protein, a lipid species, or backbone atoms.
+- Periodic-boundary-aware distance calculations, with cutoff-capped neighbour searches (`capped_distance`) that make residue contact networks over long trajectories affordable.
+- The interface that `mdahole2` uses to run HOLE frame by frame.
+
+MDAnalysis reports distances in ångström, not GROMACS's nanometres, and the notebooks follow this convention throughout.
 
 ### Modeller
-Modeller is a program for the comparative protein structure modeling by satisfaction of spatial restraints. Capable of modeling absent loops of a protein from the protein sequence, it is an important software for filling in missing loops in ion channels for simulation. More information on Modeller can be found [here](https://salilab.org/modeller/).
+[Modeller](https://salilab.org/modeller/) builds protein structures by satisfaction of spatial restraints, and in this workflow it models the loops that are unresolved in the experimental structure. It is run through ChimeraX rather than directly, and requires a license key, which is free for academic users and obtained by registering on the Modeller website.
+
+Modeller generates several candidate models for each set of gaps. Generate as many as practical, since more models sample loop conformations more thoroughly, and select the one with the most negative zDOPE score, Modeller's normalized statistical assessment of model quality. Model only gaps internal to the chain; disordered termini generally should not be invented.
 
 ### PyMOL
-PyMOL is molecular visualization software capable of rendering both structures and trajectories from a a variety of forcefields. It is useful for the visual checking of simulation results and for the visualization of results for a paper. More information about PyMOL can be found [here](https://pymol.org/).
+[PyMOL](https://pymol.org/) is a molecular visualization program, and in this workflow it is used in three places:
+
+- **Protein Repair**, to merge separately repaired chains into a single structure.
+- **Visual checks** throughout the build, such as confirming the protein's orientation in the membrane and inspecting modelled loops.
+- **Analysis**, to display results mapped onto the structure. The RMSF-variability and pore-surface files written by the analysis notebooks store their values in the B-factor column, so `spectrum b` colours the structure by them.
+
+### Python Analysis Stack
+The analysis is run as Jupyter notebooks that depend on NumPy, SciPy, Matplotlib, pandas, seaborn, MDAnalysis, and `mdahole2`, all listed in the repository's `requirements.txt`. Every notebook reads its channel-specific settings — protomer count, condition grid, residue numbering, and domain boundaries — from a shared `channel_config.py`, and can be run in a demo mode on synthetic data to check the environment before real trajectories are used. Setup is described at the start of the [Analysis](#analysis) section.
+
+Using a single environment for Martinize2, Insane, and the analysis is convenient, but keep it isolated (for example with `venv` or conda) so that package versions can be recorded and reproduced.
 
 ### Vermouth-Martinize2
-Vermouth (VERsatile, MOdular, and Universal Tranformation Helper) is the python library that powers the software Martinize2, a software that aims to produce coarse-grained structures in the Martini3 forcefield and topology files from an atomistic input. This software is designed to work in tandem with the GROMACS engine. More information about Vermouth can be found [here](https://vermouth-martinize.readthedocs.io/en/latest/index.html) and the Github for Martinize2 can be found [here](https://github.com/marrink-lab/vermouth-martinize).
+[Martinize2](https://github.com/marrink-lab/vermouth-martinize) converts an atomistic protein structure into its coarse-grained Martini 3 representation, writing both the coarse-grained coordinates and the protein topology. It is built on [Vermouth](https://vermouth-martinize.readthedocs.io/en/latest/index.html) (VERsatile, MOdular, and Universal Tranformation Helper), a Python library for topology generation, and is installed with it.
 
 ## Simulation Guide 
 
