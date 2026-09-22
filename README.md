@@ -348,7 +348,7 @@ Group numbers differ between the atomistic and coarse-grained systems and betwee
 
 ### Simulate
 
-Now that the systems are constructed, it is time to simulate them. Attached
+Now that the systems are constructed, it is time to simulate them. [Here](
 
 ### Analysis
 
