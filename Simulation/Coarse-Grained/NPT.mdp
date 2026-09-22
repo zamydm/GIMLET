@@ -1,0 +1,51 @@
+integrator              = md	      		   ; Algorithm (md = integrating over Newton's equations)
+tinit			= 0.0 			   ; Starting time for run
+dt                      = 0.020       		   ; Time step for integration (20 fentoseconds)
+nsteps                  = 200000000  		   ; Production run time (4 microseconds)
+
+;-----------------------------
+; Output control
+;-----------------------------
+
+nstxout-compressed      = 10000       		   ; xtc compressed trajectory output every 2000 steps (20 ps)
+compressed-x-precision  = 100        		   ; Precision with which to write to the compressed trajectory file
+nstlog                  = 10000       		   ; Update log file every 20 ps
+nstenergy               = 10000        	  	   ; Save energies every ps
+
+;-----------------------------
+
+cutoff-scheme           = Verlet     		   ; Buffered neighbor searching
+nstlist                 = 20	     		   ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = grid	     		   ; Type of verlet (default)
+pbc                     = xyz	     		   ; Periodic boundary conditions in all dimensions
+verlet-buffer-tolerance = 0.005			   ; Pair-list buffer whose size is tuned for energy drift
+
+coulombtype             = Reaction-field	   ; Treatment of long range electrostatic interactions
+rcoulomb                = 1.1			   ; Short-range electrostatic cut-off
+epsilon-r               = 15			   ; Relative dielectric constant (with polarizable water)
+epsilon-rf              = 0   			   ; epsilon_rf = 0 really means epsilon_rf = infinity
+vdw_type                = Cut-off  		   ; Plain long range cut off
+vdw-modifier            = Potential-shift	   ; Potential is integral of force
+rvdw                    = 1.1			   ; Short-range Van der Waals cut-off
+
+tcoupl                  = V-rescale 		   ; Temperature coupling using velocity rescaling
+tc-grps                 = Protein Membrane Solvent ; Groups to couple in separate temperature bath
+tau-t                   = 1.0 1.0 1.0 		   ; Time constant for coupling
+ref-t                   = 310 310 310		   ; Reference temperature for coupling
+
+Pcoupl                  = Parrinello-Rahman	   ; Exponential relaxation pressure coupling
+Pcoupltype              = Semiisotropic		   ; Isotropic coupling in x/y, different in z
+ref-p                   = 1.0 1.0		   ; Reference pressure for coupling
+tau-p                   = 12.0			   ; Time constant for pressure coupling
+compressibility         = 3e-4 3e-4	           ; Compressibility of the system in 1/bar
+
+refcoord-scaling        = all			   ; Reference coordinates are scaled with pressure coupling
+gen-vel                 = no			   ; Velocities are kept from input file
+continuation		= yes			   ; Do not apply constraints to start configuration and do not reset shells
+
+constraints             = none          	   ; No constraints except for those defined in topology
+constraint_algorithm    = LINCS         	   ; Linear constraint solver. Does corrective iterations.
+lincs-order             = 8			   ; Highest order expansion in constraint coupling matrix
+lincs_iter 		= 2			   ; Number of iterations to correct for rotational lengthening in LINCS
+
+

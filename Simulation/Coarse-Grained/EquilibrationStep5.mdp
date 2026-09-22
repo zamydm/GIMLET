@@ -1,0 +1,48 @@
+define                  = -DPOSRES -DPOSRES_FC=50 -DBILAYER_LIPIDHEAD_FC=10	   
+; Implements position restraints
+integrator              = md	      		   ; Algorithm (md = integrating over Newton's equations)
+dt                      = 0.020       		   ; Time step for integration (20 fentoseconds)
+nsteps                  = 50000  		   ; Simulation run time (1 nanoseconds)
+	
+;-----------------------------
+; Output control
+;-----------------------------
+
+nstxout-compressed      = 1000      		   ; Number of steps between writing position coordinates using lossy
+compressed-x-precision  = 100       		   ; Precision with which to write to the compressed trajectory file
+nstlog                  = 1000       		   ; Number of steps between writing energies to the log file
+nstenergy               = 100        	  	   ; Number of steps between writing energies to energy file
+
+cutoff-scheme           = Verlet    		   ; Buffered neighbor searching
+nstlist                 = 20	      		   ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = Grid	    		   ; Type of verlet (default)
+pbc                     = xyz	      		   ; Periodic boundary conditions in all dimensions
+verlet-buffer-tolerance = 0.005			   ; Pair-list buffer whose size is tuned for energy drift
+
+coulombtype             = Reaction-Field	   ; Reaction field electrostatics with coulomb cut-off
+rcoulomb                = 1.1			   ; Distance for Coulomb cutoff
+epsilon-r               = 15			   ; Relative dielectric constant
+epsilon-rf              = 0			   ; Relative dielectric constant of reaction field
+vdw_type                = Cut-off		   ; Plain cut-off with pair list radius rlist
+vdw-modifier            = Potential-shift	   ; Shift VDW potential by constant such that it is zero at cutoff
+rvdw                    = 1.1			   ; Distance for LJ cutoff
+
+tcoupl                  = V-rescale		   ; Temperature coupling using Berendsen with proper canonical ensemble
+tc-grps                 = Protein Membrane Solvent ; Groups to couple in separate temperature bath 
+tau-t                   = 1.0 1.0 1.0		   ; Time constant for coupling 
+ref-t                   = 310 310 310 		   ; Reference temperature for coupling
+
+Pcoupl                  = Berendsen		   ; Exponential relaxation pressure coupling with time constant tau-p
+Pcoupltype              = Semiisotropic		   ; Pressure coupling isotropic in x and y, but not in z direction
+tau-p                   = 4.0			   ; Time constant for pressure coupling
+compressibility         = 3e-4 3e-4		   ; Compressibility of system, high compressibility for martini3
+ref-p                   = 1.0 1.0		   ; Reference pressure for coupling
+
+refcoord_scaling	= all			   ; Reference coordinates are scaled with scaling matrix of pressure coupling
+gen-vel                 = no			   ; Velocities are equal to input energy minimization
+continuation		= yes			   ; Do not apply constraints to start configuration and do not reset shells
+
+constraints             = none          	   ; No constraints except for those defined in topology
+constraint_algorithm    = LINCS         	   ; Linear constraint solver. Does corrective iterations.
+lincs-order             = 8			   ; Highest order expansion in constraint coupling matrix
+lincs_iter 		= 2			   ; Number of iterations to correct for rotational lengthening in LINCS

@@ -1,0 +1,28 @@
+integrator              = steep         	 ; Algorithm (steep = steepest descent minimization)
+
+emstep                  = 0.001          	 ; Energy step size
+nsteps                  = 5000         	 	 ; Maximum number of (minimization) steps to perform
+
+nstlog                  = 1000			 ; Number of steps between writing energies to the log file
+nstenergy               = 100			 ; Number of steps between writing energies to energy file
+nstxout-compressed      = 1000			 ; Number of steps between writing position coordinates using lossy
+compressed-x-precision  = 100			 ; Precision with which to write compressed trajectory file
+
+nstlist                 = 20			 ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = grid			 ; Check only nearby atoms when constructing new neighbor
+cutoff-scheme           = Verlet        	 ; Buffered neighbor searching
+verlet-buffer-tolerance = 0.005			 ; Maximum allowed error for pair interactions
+pbc 			= xyz			 ; Periodic boundary conditions in all dimensions
+
+coulombtype             = Reaction-Field	 ; Reaction field electrostatics with coulomb cut-off
+rcoulomb                = 1.1			 ; Distance for Coulomb cutoff
+epsilon-r               = 15			 ; Relative dielectric constant
+vdw_type                = Cut-off		 ; Plain cut-off with pair list radius rlist
+vdw-modifier            = Potential-shift	 ; Shift VDW potential by constant such that it is zero at cutoff
+rvdw                    = 1.1			 ; Distance for LJ cutoff
+
+constraints             = none          	 ; No constraints except for those defined in topology
+constraint_algorithm    = LINCS         	 ; Linear constraint solver. Does corrective iterations.
+lincs-order             = 8			 ; Highest order expansion in constraint coupling matrix
+lincs_iter 		= 2			 ; Number of iterations to correct for rotational lengthening in LINCS
+
