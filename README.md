@@ -8,6 +8,24 @@
   <p>
     A repository for a streamlined and reproducible method of ion channel simulation and analysis through atomistic and coarse grained means in GROMACS.
   </p>
+  
+  <p>
+    <a href="https://github.com/zamydm/GIMLET/graphs/contributors">
+      <img src="https://img.shields.io/github/contributors/zamydm/GIMLET" alt="contributors" />
+    </a>
+    <a href="https://github.com/zamydm/GIMLET/commits/main">
+      <img src="https://img.shields.io/github/last-commit/zamydm/GIMLET" alt="last commit" />
+    </a>
+    <a href="https://github.com/zamydm/GIMLET/issues">
+      <img src="https://img.shields.io/github/issues/zamydm/GIMLET" alt="open issues" />
+    </a>
+    <a href="https://github.com/zamydm/GIMLET/network/members">
+      <img src="https://img.shields.io/github/forks/zamydm/GIMLET" alt="forks" />
+    </a>
+    <a href="https://github.com/zamydm/GIMLET/stargazers">
+      <img src="https://img.shields.io/github/stars/zamydm/GIMLET" alt="stars" />
+    </a>
+  </p>
 
 </div>
 
