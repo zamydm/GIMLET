@@ -544,13 +544,13 @@ Notes:
 
 ### Analysis
 
-Once production runs are complete, the trajectories are analysed with a set of Jupyter notebooks found [here](https://github.com/zamydm/GIMLET/tree/main/Analysis). Every notebook is written for a homo-oligomeric channel simulated over a grid of conditions at one or more resolutions, and every channel-specific number lives in a single shared configuration file, so the same notebooks can be pointed at a different channel without editing the analysis code.
+Once production runs are complete, the trajectories are analysed with a set of Jupyter notebooks found [here](https://github.com/zamydm/GIMLET/tree/main/Scripts). Every notebook is written for a homo-oligomeric channel simulated over a grid of conditions at one or more resolutions, and every channel-specific number lives in a single shared configuration file, so the same notebooks can be pointed at a different channel without editing the analysis code.
 
 | Notebook | Sections | Input |
 |---|---|---|
 | `GeneralIonChannelAnalysis.ipynb` | RMSD, RMSF, Radius of Gyration, system energies | `.xvg` files from GROMACS analysis tools |
 | `ProteinChannel.ipynb` | Pore Analysis | Protein-only structure and trajectory |
-| `ProteinProteinNetwork.ipynb` | Contact Analysis (and the input to ChACRA) | Protein-only structure and trajectory |
+| `ProteinProteinNetwork.ipynb` | Contact Analysis | Protein-only structure and trajectory |
 | `ProteinLipidNetwork.ipynb` | Lipid Analysis | Full-system structure and trajectory |
 
 #### Getting started
@@ -561,8 +561,6 @@ The notebooks require Python with NumPy, SciPy, Matplotlib, pandas, seaborn, MDA
 pip install -r requirements.txt
 jupyter lab
 ```
-
-Pore analysis additionally needs the external [HOLE](https://www.holeprogram.org/) program, which is licensed separately from `mdahole2` and must be installed on its own (see [Pore Analysis](#pore-analysis)).
 
 Every notebook has a `USE_DEMO_DATA` switch in its configuration cell. With it set to `True`, the notebook writes small synthetic input files and runs end to end, which confirms that the environment works before any real trajectory is involved. Several of the demo datasets also plant a known signal — a temperature-dependent contact, a lipid binding site, an asymmetric contact the symmetry filter should remove — so the analysis can be seen recovering it. The demo data are fabricated and carry no physical meaning. Set `USE_DEMO_DATA = False` to analyse real trajectories.
 
@@ -753,7 +751,7 @@ The decomposition assumes a homo-oligomer whose subunits appear as consecutive, 
 
 Beyond individual residue pairs, energy-sensitive contact modes — collective sets of contacts whose frequencies change together in response to a thermodynamic variable — are identified by principal component analysis of contact frequencies across the full condition grid, following the ChACRA framework, with MDAnalysis used for trajectory processing. A script for this analysis is not yet included in the repository; the procedure is described below so it can be reproduced.
 
-**1. Contact-frequency matrix.** Assemble a matrix with one row per simulation condition and one column per residue pair, each entry the contact probability of that pair in that condition. It is built from the filtered contact probabilities produced by [Contact Analysis](#contact-analysis), so that asymmetric, artefactual contacts do not enter the decomposition.
+**1. Contact-frequency matrix.** Assemble a matrix with one row per simulation condition and one column per residue pair, each entry the contact probability of that pair in that condition. It is built from the filtered contact probabilities produced by [Contact Analysis](#contact-analysis), so that asymmetric, artificial contacts do not enter the decomposition.
 
 **2. Principal component analysis.** Decompose the matrix across conditions. Each principal component $k$ has a fraction of the total variance it explains, $\lambda_k$, a loading $L_{kc}$ for every contact $c$ describing how strongly that contact participates in the mode, and a score for every condition describing how strongly the mode is expressed there.
 
