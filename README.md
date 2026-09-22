@@ -28,6 +28,7 @@
   * [Protein Repair](#protein-repair)
   * [Atomistic](#atomistic)
   * [Coarse Grain](#coarse-grain)
+  * [Simulate](#simulate)
   * [Analysis](#analysis)
 - [Contact](#contact)
 - [References](#references)
@@ -153,7 +154,7 @@ gmx grompp -f ions.mdp -c system.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o system_neutral.gro -p topol.top -pname SOD -nname CLA -neutral
 ```
 
-Ions are placed by replacing water molecules. Most common and relevant ion species for ion channel simulation are Na+, K+, and Cl- given the natural frequency of these ions. Addiitional/different ions can be added if desired; determine the subject of study  Confirm that the force field and ion topology `.itp` files referenced in `topol.top` are updated after every run, including failed ones, since a partially written topology will silently carry over.
+Ions are placed by replacing water molecules. Most common and relevant ion species for ion channel simulation are Na+, K+, and Cl- given the natural frequency of these ions. Addiitional/different ions can be added if desired; determine the subject of study and ion channel ion interactions to best decide ion species and concentration. Confirm that the force field and ion topology `.itp` files referenced in `topol.top` are updated after every run, including failed ones, since a partially written topology will silently carry over.
 
 **2. Add ions to the target concentration**
 
@@ -177,7 +178,7 @@ Analysis and the temperature/pressure coupling groups in the `.mdp` files both d
 gmx make_ndx -f system_ions.gro -o index.ndx
 ```
 
-Define three working groups — `Protein`, `Membrane`, and `Solvent`. The membrane group is the union of every lipid species group, and the solvent group is the union of water and all ion groups. Group numbers are assigned per system and will not match between builds, so read them off the listing that `make_ndx` prints rather than reusing numbers from a previous system:
+Define three working groups — `Protein`, `Membrane`, and `Solvent`. The membrane group is the union of every lipid species group, and the solvent group is the union of water and all ion groups. These groups are vital for referencing during equilibration and simulation. Note that the Protein group is usually predefined by the topology. Group numbers are assigned per system and will not match between builds, so read them off the listing that `make_ndx` prints rather than reusing numbers from a previous system. An example of what a group construction could look like:
 
 ```
 13 | 14 | 15 | 16 | 17 | 18 | 19
@@ -210,7 +211,7 @@ Notes on the flags and on the files this produces:
 
 - `-dssp` assigns secondary structure, which Martini uses to set backbone bonded parameters.
 - `-elastic` applies an elastic network. Add or tune it when the coarse-grained protein does not maintain the tertiary structure expected from the atomistic model; without it, large multidomain channels tend to drift apart.
-- `-p backbone -pf 1000` writes position restraints on the backbone beads with a force constant of 1000 kJ mol⁻¹ nm⁻².
+- `-p backbone -pf 1000` writes position restraints on the backbone beads with a force constant of 1000 kJ mol⁻¹ nm⁻². This is important in early equilibration to prevent simulation crashing.
 - Delete any remaining `HETATM` atoms before mapping. They frequently produce clashes that cause Martinize2 to fail or to map nonsense beads.
 
 Edit the generated `.itp` so that the hard-coded restraint force constant becomes an adjustable one that can be switched on and off, and scaled, from the `.mdp` file:
@@ -236,7 +237,7 @@ insane -f protein_cg.pdb -o protein_solvated.gro -p protein_solvated.top \
   -x <X> -y <Y> -z <Z> -center -sol W -salt <concentration>
 ```
 
-This places the protein in a box of the given dimensions (in nm), centers it, and solvates it with Martini water and ions. Update the `.top` and `.gro` files afterwards so the protein is properly included and so that ion names match the Martini 3 naming convention.
+This places the protein in a box of the given dimensions (in nm), centers it, and solvates it with Martini water and ions. Update the `.top` and `.gro` files afterwards so the protein is properly included and so that ion names match the Martini3 naming convention.
 
 **2. Build an index file and minimize**
 
@@ -277,9 +278,9 @@ insane -f protein_cg_stable.pdb -o system_cg.gro -p topol.top \
 ```
 
 - `-l` and `-u` specify the lower and upper leaflet composition. Use the same lipid types and the same leaflet asymmetry as the atomistic system so that the two resolutions are directly comparable.
-- `-dm` shifts the bilayer along z. Use it to match the membrane position produced by CHARMM-GUI in the atomistic build.
+- `-dm` shifts the bilayer along z. Use it to match the membrane position produced by CHARMM-GUI in the atomistic build/match physiological conditions of the protein. It is unlikely to achieve an exact position, but small adjustments will occur naturally during equilibration so do not be too concerned.
 - `-alname`, `-alhead`, `-allink`, and `-altail` define lipids that are not in the insane library by giving their bead topology explicitly. Any custom lipid used in the atomistic membrane will usually need to be defined this way.
-- Set the salt concentration to zero here. insane only adds NaCl, so all ion species are added afterwards with `gmx genion`, which allows mixed-salt conditions to be built.
+- Set the salt concentration to zero here. Insane only adds NaCl, so all ion species are added afterwards with `gmx genion`, which allows mixed-salt conditions to be built.
 - Confirm that the protein is correctly oriented in the bilayer before continuing; an inverted or tilted insertion will not recover during equilibration.
 
 #### Restraining the upper leaflet
@@ -344,6 +345,12 @@ name <new_group_number> Solvent
 ```
 
 Group numbers differ between the atomistic and coarse-grained systems and between builds, so always take them from the current `make_ndx` listing.
+
+### Simulate
+
+Now that the systems are constructed, it is time to simulate them. Attached
+
+### Analysis
 
 ## Contact
 
