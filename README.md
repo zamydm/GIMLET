@@ -544,19 +544,272 @@ Notes:
 
 ### Analysis
 
+Once production runs are complete, the trajectories are analysed with a set of Jupyter notebooks found [here](https://github.com/zamydm/GIMLET/tree/main/Analysis). Every notebook is written for a homo-oligomeric channel simulated over a grid of conditions at one or more resolutions, and every channel-specific number lives in a single shared configuration file, so the same notebooks can be pointed at a different channel without editing the analysis code.
+
+| Notebook | Sections | Input |
+|---|---|---|
+| `GeneralIonChannelAnalysis.ipynb` | RMSD, RMSF, Radius of Gyration, system energies | `.xvg` files from GROMACS analysis tools |
+| `ProteinChannel.ipynb` | Pore Analysis | Protein-only structure and trajectory |
+| `ProteinProteinNetwork.ipynb` | Contact Analysis (and the input to ChACRA) | Protein-only structure and trajectory |
+| `ProteinLipidNetwork.ipynb` | Lipid Analysis | Full-system structure and trajectory |
+
+#### Getting started
+
+The notebooks require Python with NumPy, SciPy, Matplotlib, pandas, seaborn, MDAnalysis, and `mdahole2`, all listed in the repository's `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+jupyter lab
+```
+
+Pore analysis additionally needs the external [HOLE](https://www.holeprogram.org/) program, which is licensed separately from `mdahole2` and must be installed on its own (see [Pore Analysis](#pore-analysis)).
+
+Every notebook has a `USE_DEMO_DATA` switch in its configuration cell. With it set to `True`, the notebook writes small synthetic input files and runs end to end, which confirms that the environment works before any real trajectory is involved. Several of the demo datasets also plant a known signal — a temperature-dependent contact, a lipid binding site, an asymmetric contact the symmetry filter should remove — so the analysis can be seen recovering it. The demo data are fabricated and carry no physical meaning. Set `USE_DEMO_DATA = False` to analyse real trajectories.
+
+Figures are written to `results/<notebook>/` when `SAVE_FIGURES = True`, one subdirectory per notebook so that figures of the same name cannot overwrite each other.
+
+#### Shared configuration
+
+Everything common to all notebooks is defined once in `channel_config.py`, which sits beside the notebooks and is imported by each of them. Change a value there and every notebook picks it up. Adapting the analysis to a new channel means editing this file:
+
+| Setting | Meaning |
+|---|---|
+| `MD_DATA_ROOT` (environment variable) | Root directory of the trajectory data. Defaults to `data/` relative to the notebooks. |
+| `MODEL_LEVELS` | The sets of simulations to compare, e.g. `("coarse", "atomistic")`. Use a single entry if only one resolution was run. |
+| `TEMPERATURES_K`, `SALINITIES_MM` | The two axes of the condition grid. Every combination is one simulation. |
+| `condition_dirname()` | Maps a condition to its directory name. The default writes temperature in kelvin followed by salinity in units of 10 mM, e.g. `310K15` for 310 K and 150 mM. |
+| `N_PROTOMERS` | Number of identical subunits: 4 for tetrameric channels, 5 for pentameric ligand-gated channels, 3 for trimeric channels, 1 to disable subunit averaging. |
+| `RESIDUE_OFFSET` | Added to the residue numbers each model level writes, so every resolution lands on one common numbering scheme (normally that of the reference structure). A coarse-grained model renumbered from 1 needs an offset equal to the first real residue number minus one. |
+| `RESIDUE_NUMBER_ORIGIN` | First real residue number of the modelled construct. |
+| `DOMAIN_SEGMENTS` | Structural domains, as real residue ranges with a name and colour. Drawn as a colour strip under every per-residue plot and used to annotate tables. The shipped values are examples and must be replaced with the domain boundaries of the channel being studied; set to `[]` to omit domain annotation. |
+| `FONTSIZE`, `TEMPERATURE_COLORS` | Shared plot styling. `TEMPERATURE_COLORS` needs at least one colour per temperature. |
+
+The simulations are described once as a condition grid, ordered salinity-major (every temperature at the first salinity, then every temperature at the next). Every list of loaded data follows that order, and subsets are selected by query rather than by hard-coded slices — `grid.where(salinity_mm=150)` returns the positions of every run at 150 mM. Although the grid axes are named for temperature and salinity, any two scanned variables can be mapped onto them; only the axis labels would then need changing.
+
+#### Preparing trajectories
+
+The notebooks expect one directory per condition under each model level:
+
+```
+<MD_DATA_ROOT>/
+├── reference/
+│   └── channel_reference.pdb        # single structure for the pore baseline
+├── atomistic/
+│   ├── 305K05/
+│   │   ├── NPT.gro, NPT.xtc                                  # full system, centred
+│   │   ├── NPTProteinCenter.gro, .pdb, .xtc                  # protein only, centred
+│   │   └── RMSDProtein.xvg, RMSFProtein.xvg, RGProtein.xvg, NPTEnergy.xvg
+│   └── ...
+└── coarse/
+    └── ...
+```
+
+File names are set per notebook in its `FILENAMES` dictionary, and the layout itself can be changed by redefining `build_path()` in the notebook's configuration cell.
+
+Before any analysis, make molecules whole across the periodic boundary and centre the protein in the box. Run these from the production directory, writing into the corresponding data directory:
+
+```bash
+# Full system, protein centred (lipid analysis and the GROMACS analysis tools)
+# Centre on: Protein   Output: System
+gmx trjconv -s NPT.tpr -f NPT.xtc -o <data_dir>/NPT.xtc -pbc mol -center -n Index.ndx
+gmx trjconv -s NPT.tpr -f NPT.xtc -o <data_dir>/NPT.gro -pbc mol -center -n Index.ndx -dump 0
+
+# Protein only, centred (contact and pore analysis)
+# Centre on: Protein   Output: Protein
+gmx trjconv -s NPT.tpr -f NPT.xtc -o <data_dir>/NPTProteinCenter.xtc -pbc mol -center -n Index.ndx
+gmx trjconv -s NPT.tpr -f NPT.xtc -o <data_dir>/NPTProteinCenter.gro -pbc mol -center -n Index.ndx -dump 0
+gmx trjconv -s NPT.tpr -f NPT.xtc -o <data_dir>/NPTProteinCenter.pdb -pbc mol -center -n Index.ndx -dump 0
+```
+
+Because production output is itself named `NPT.xtc`, never write the centred full-system trajectory into the production directory under the same name, as that overwrites the raw trajectory. Do not use `-pbc atom` for any of these files; it splits molecules across the boundary and corrupts every distance-based calculation.
+
+A protein-only trajectory keeps the contact and pore calculations affordable, while lipid analysis needs the full system. GROMACS writes lengths in nm and times in ps; the notebooks convert `.xvg` input on load, so every figure and table is in ångström and nanoseconds. MDAnalysis and HOLE already work in ångström.
+
 #### RMSD
+
+The root-mean-square deviation of the protein from the start of production is a measure of global structural drift. A trace that rises and then plateaus indicates that the structure has relaxed into a stable ensemble; one still climbing at the end of the trajectory has not equilibrated, and the early part of the run should be excluded from any analysis of equilibrium properties.
+
+Generate the input from the centred full-system trajectory, selecting the backbone for both the fit and the RMSD calculation (the `BB` beads in a Martini system, which need their own index group):
+
+```bash
+gmx rms -s NPT.tpr -f <data_dir>/NPT.xtc -o <data_dir>/RMSDProtein.xvg -tu ps -n Index.ndx
+```
+
+The reference structure is the one stored in `NPT.tpr`, i.e. the first frame of production.
+
+`GeneralIonChannelAnalysis.ipynb` loads every RMSD file on the grid and plots one panel per model level and salinity with all temperatures overlaid. Traces are smoothed with a Savitzky–Golay filter (window 101 frames, third-order polynomial) for legibility only; the summary table of mean, standard deviation, minimum, and maximum per run is computed from the raw data. A run whose mean RMSD sits far from the rest of its series usually indicates an unequilibrated or unstable trajectory and is worth inspecting before it is compared with the others.
+
+The same notebook plots system energies from `gmx energy` as a second equilibration check: after the initial relaxation, the potential energy should be flat, with an offset between temperatures. Select the terms in the order the notebook's `ENERGY_COLUMNS` setting expects (LJ (SR), Coulomb (SR), Potential, Kinetic En., Total Energy, Temperature, Pressure, Density), or edit `ENERGY_COLUMNS` to match the selection made:
+
+```bash
+gmx energy -f NPT.edr -o <data_dir>/NPTEnergy.xvg
+```
 
 #### RMSF
 
+The root-mean-square fluctuation of each residue about its average position identifies which parts of the channel are mobile. Peaks mark flexible loops and termini; troughs mark the rigid core, typically the transmembrane helices.
+
+```bash
+gmx rmsf -s NPT.tpr -f <data_dir>/NPT.xtc -o <data_dir>/RMSFProtein.xvg -res -n Index.ndx
+```
+
+`-res` writes one value per residue, which the notebook assumes. The selected group must cover every subunit in full, in chain order.
+
+The notebook performs several analyses on these profiles:
+
+- **Protomer averaging.** GROMACS reports residues for the whole assembly as consecutive per-subunit blocks. For a homo-oligomer, the profile is averaged across the `N_PROTOMERS` subunits into a single per-protomer profile, then shifted by `RESIDUE_OFFSET` so the atomistic and coarse-grained profiles share a residue axis. Profiles are plotted per model level and salinity, temperatures overlaid, above the domain strip.
+- **Candidate critical residues.** Prominent RMSF peaks — rising at least 0.1 Å above the local baseline and at least 15 residues apart — are flagged as candidate hinge or gating residues. A position is reported as a consensus peak when it appears in at least half the runs (and in at least two), with its domain annotated. These are candidates for follow-up, not conclusions.
+- **RMSF variability.** The standard deviation of the RMSF profile across a set of runs isolates residues whose mobility responds to a changing condition, as opposed to residues that are mobile in every run. It is computed across temperature at each salinity and across salinity at each temperature, and shown as a log-scaled heat map.
+- **Variability on the structure.** When `REFERENCE_PDB` is set to a structure whose residue numbering matches the common scheme, the variability is written into the B-factor column of a copy of that structure (log-transformed and rescaled to 0–100), one file per model level and salinity. The most condition-sensitive residues can then be highlighted in PyMOL:
+
+```
+load rmsf_variability_atomistic_150mM.pdb
+spectrum b, blue_white_red
+```
+
+With only a handful of conditions per group, the variability is a coarse, few-degree-of-freedom estimate best used to rank residues rather than as a quantity to report.
+
 #### Radius of Gyration
+
+The radius of gyration is a global measure of how compact the assembly is. A steady upward drift alongside rising RMSD usually means the assembly is loosening, rather than simply relaxing from its starting structure.
+
+```bash
+gmx gyrate -s NPT.tpr -f <data_dir>/NPT.xtc -o <data_dir>/RGProtein.xvg -n Index.ndx
+```
+
+The notebook reads the total radius of gyration by default, and can instead read the x, y, or z component (columns 2–4 of the `.xvg` file) through the `component` argument of `RGAnalysis`. Plots and the summary table follow the same layout as RMSD.
 
 #### Pore Analysis
 
+`ProteinChannel.ipynb` measures the radius of the conduction pathway as a function of position along the pore using HOLE, called through the `mdahole2` interface to MDAnalysis. The narrowest point of the profile determines whether a hydrated ion can pass, and how it shifts between conditions is the most direct structural readout of gating.
+
+**Requirements.** `mdahole2` is only a wrapper: it calls the HOLE executable, which must be installed separately from the [HOLE website](https://www.holeprogram.org/) and either placed on `PATH` or pointed to with the `HOLE_EXECUTABLE` environment variable. The notebook checks for the executable before doing any work. Without HOLE installed, demo mode still runs every downstream step on synthetic profiles.
+
+**Resolution.** HOLE assigns van der Waals radii by atom name from all-atom radius tables, so pore profiles are only meaningful for atomistic trajectories. Restrict the notebook to atomistic data when running on real systems.
+
+**Inputs.** The protein-only `NPTProteinCenter.pdb` and `NPTProteinCenter.xtc` for each condition, and optionally a single reference structure, such as the repaired structure from [Protein Repair](#protein-repair), analysed on its own as a baseline.
+
+**Settings.** The main settings in the configuration cell are:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `HOLE_END_RADIUS` | 5.0 Å | Radius at which HOLE decides it has left the pore. Larger values follow the pathway further into the vestibules but can escape into bulk solvent. |
+| `HOLE_CVECT`, `HOLE_CPOINT` | `None` | Pore axis direction and a point inside the lumen. Only needed if the channel axis is not along z, which it normally is after centring a membrane system. |
+| `FRAME_STEP`, `START_FRAME`, `END_FRAME` | 100, 0, end | Frame selection. HOLE runs once per frame, so a stride giving roughly 50–200 frames per condition is usually enough for a mean profile. Set `START_FRAME` to exclude the portion of the trajectory before the RMSD plateau. |
+| `PORE_AXIS_WINDOW` | `None` | Range of the pore axis to keep. |
+| `PROFILE_N_POINTS` | 400 | Number of points on the common axis profiles are resampled onto. |
+| `CONSTRICTION_PROMINENCE`, `CONSTRICTION_MIN_SEPARATION` | 0.5 Å, 3.0 Å | Minimum depth of a radius minimum to count as a constriction, and minimum spacing between reported constrictions. |
+
+**Method.** The notebook proceeds in five steps:
+
+1. **Profiling.** HOLE is run on every selected frame of every condition.
+2. **Averaging.** HOLE samples a different set of positions in every frame, because the pathway wanders and the profile ends wherever the radius exceeds `HOLE_END_RADIUS`. Each frame's profile is therefore resampled onto one common axis spanning only the range shared by every frame, and the mean and standard deviation across frames are taken at each point.
+3. **Alignment.** HOLE's reaction coordinate is measured from wherever the pathway search began, so the same constriction can appear at different coordinates in different runs. Each condition's profile is shifted along the axis so that its constrictions line up with the consensus constriction positions across all conditions. The shifts are reported; a shift approaching the length of the pore means the constrictions being matched are probably not the same physical features.
+4. **Constrictions.** Local minima of the radius are located in each profile, and the narrowest radius per condition is tabulated.
+5. **Outputs.** Aligned profiles are plotted with the pore axis vertical, so the figure reads like a cross-section through the membrane, with a band showing one standard deviation across frames. A summary figure shows the limiting (minimum) radius against temperature, one line per salinity. Pore surface meshes — rings of pseudoatoms at the local radius, with the radius stored in the B-factor column — are written for the reference structure and a representative condition, and can be loaded alongside the protein:
+
+```
+load pore_surface_atomistic_310K_150mM.pdb
+show surface, pore_surface_atomistic_310K_150mM
+```
+
+The standard-deviation band describes fluctuation within a run, not uncertainty in the mean; a wide band indicates a mobile gate. Constriction detection has no knowledge of which minimum is the selectivity filter and which is the gate, so assign those from the positions and the channel's structure. The pore mesh assumes a circular cross-section and is a visualisation aid rather than a physical model.
+
 #### Contact Analysis
+
+`ProteinProteinNetwork.ipynb` builds residue–residue contact networks for the channel and identifies the pairs whose contacts respond to a change in conditions. For a temperature-sensitive channel, the pairs that consistently form or break as temperature rises are candidates for the interactions that rearrange during gating.
+
+**Contact definition.** Two residues are in contact in a frame if any atom of one is within the cutoff of any atom of the other, with periodic boundaries applied. The cutoff is set per resolution in `CONTACT_CUTOFF`: 4.5 Å between heavy atoms for atomistic systems, and 6.0 Å between beads for coarse-grained systems, since a bead stands in for several heavy atoms. The contact probability of a pair is the fraction of analysed frames in which it is in contact. This is occupancy, not interaction strength: many atom-level contacts between the same two residues count once. A separate mean-distance matrix is computed on one representative atom per residue (`CA` atomistic, `BB` coarse grained).
+
+**Error estimates.** Consecutive frames are correlated, so the naive standard error over frames is far too small. Each trajectory is instead divided into `N_BLOCKS` contiguous blocks (default 10), the contact probability is computed per block, and the standard error is taken across blocks. At least 5 blocks are needed for a meaningful estimate, and because the blocks are assumed independent, the result is a lower bound whenever a contact's correlation time exceeds the block length.
+
+**Symmetry filter.** In a homo-oligomer, every contact has `N_PROTOMERS` symmetry-equivalent copies — one per subunit for an intra-subunit contact, one per subunit pair for an interface contact. A contact present in some but not all of its copies is far more likely to be a sampling artefact than a property of the channel, and left in, such contacts tend to dominate the most variable pairs. Before any other calculation, the notebook compares the copies of every contact in the assembly-wide matrix:
+
+- Present in every copy: kept.
+- Absent in every copy: kept (symmetric absence).
+- Present in some copies but not all: removed from every copy.
+
+A contact counts as present in a copy when its probability is at least `SYMMETRY_MIN_PROBABILITY` (default 0.05), and `SYMMETRY_MIN_COPIES` sets how many copies must show it (default: all). The fraction of contacts and of total contact probability removed is printed for each model level. Every downstream figure is built from the same filtered set; the unfiltered matrices are retained, and the filter can be switched off with `APPLY_SYMMETRY_FILTER = False` for comparison. A very high removal fraction usually means the probability threshold is too low or the subunits have not converged; relaxing `SYMMETRY_MIN_COPIES` (for example, 3 of 4) is a better first adjustment than lowering the threshold.
+
+**Subunit decomposition.** The filtered assembly matrix is split into subunit blocks and averaged into three classes:
+
+- **Intra**: residues of the same subunit, describing the internal architecture of one protomer.
+- **Adjacent**: neighbouring subunits, describing the main subunit–subunit interface.
+- **Diagonal**: subunits two positions apart, which in a tetramer are the contacts across the pore.
+
+An inter-subunit average weights the adjacent and diagonal classes by how many partners of each kind a subunit has — for a tetramer, (2 × adjacent + diagonal) / 3. The weights are derived from `N_PROTOMERS`, so the average is also correct for trimers and pentamers. Standard errors are propagated through the averaging.
+
+**Condition response.** Three complementary views identify which contacts respond to the scanned variable:
+
+- **Variance maps and arc diagrams.** The variance of each pair's probability across temperature is computed at each salinity, for intra- and inter-subunit contacts. Pairs above `VARIANCE_THRESHOLD` (default 10⁻³) and at least `MIN_SEQUENCE_SEPARATION` residues apart (default 4, excluding trivially adjacent residues) are drawn as a variance heat map and as an arc diagram along the sequence, where the darkness and thickness of each arc are its variance on a log scale. The arc shading is relative within a figure; absolute values are read off the variance map.
+- **Monotonic trends.** Pairs whose probability rises or falls consistently with temperature are detected with Kendall's τ rather than a linear fit, since with only a handful of temperatures a least-squares slope is dominated by the noisiest point. The magnitude of the change is a Theil–Sen (median pairwise slope) estimate. A pair is reported when |τ| ≥ 0.75, the change across the full temperature range is at least 0.05, and the pair is neither essentially never formed (maximum probability below 0.02) nor essentially never broken (minimum above 0.98). The strongest forming and breaking pairs are tabulated with their domains.
+- **Per-pair detail.** Selected pairs are plotted as probability against temperature with block-averaged error bars. Pairs can be listed in `RESIDUE_PAIRS_OF_INTEREST` as real residue numbers; if it is left as `None`, the strongest trending pairs are used, which keeps the comparison in step with the data. The single strongest trending pair is also followed through time, averaged over subunits, using the smooth switching function $s(d) = 1/\left(1 + e^{\beta (d - \lambda r_c)}\right)$ averaged over all atom pairs of the two residues, with $\beta = 5$ Å⁻¹, $\lambda = 1.8$, and $r_c$ the contact cutoff. This time series shows whether a contact is stable, intermittent, or breaks at a particular moment — situations that can produce the same mean probability — but it is a smoothed indicator on a different scale from the contact probabilities and should not be compared with them numerically.
+
+**Cost.** The contact network is the expensive step, scaling with the number of frames times the number of atoms. Contacts are found with a cutoff-capped neighbour search, so the cost grows with the number of contacts rather than the square of the atom count. Raise `FRAME_STEP` (default 50) to reduce it, and keep hydrogens excluded for atomistic systems.
+
+The decomposition assumes a homo-oligomer whose subunits appear as consecutive, equal-length residue blocks. For a hetero-oligomer, set `N_PROTOMERS = 1` and slice the matrices manually.
 
 #### ChACRA
 
+Beyond individual residue pairs, energy-sensitive contact modes — collective sets of contacts whose frequencies change together in response to a thermodynamic variable — are identified by principal component analysis of contact frequencies across the full condition grid, following the ChACRA framework, with MDAnalysis used for trajectory processing. A script for this analysis is not yet included in the repository; the procedure is described below so it can be reproduced.
+
+**1. Contact-frequency matrix.** Assemble a matrix with one row per simulation condition and one column per residue pair, each entry the contact probability of that pair in that condition. It is built from the filtered contact probabilities produced by [Contact Analysis](#contact-analysis), so that asymmetric, artefactual contacts do not enter the decomposition.
+
+**2. Principal component analysis.** Decompose the matrix across conditions. Each principal component $k$ has a fraction of the total variance it explains, $\lambda_k$, a loading $L_{kc}$ for every contact $c$ describing how strongly that contact participates in the mode, and a score for every condition describing how strongly the mode is expressed there.
+
+**3. Classifying components.** For each component, compute the marginal coefficients of determination of its scores with respect to each scanned variable: $R^2_T$, the fraction of the variance in the component's scores across conditions explained by temperature alone, and $R^2_S$, the fraction explained by salinity alone. A component is classified as temperature-responsive when $R^2_T \geq 0.5$ and salinity-responsive when $R^2_S \geq 0.5$. On a balanced grid, in which every temperature is run at every salinity, the two variables are uncorrelated, so $R^2_T + R^2_S \leq 1$ and no component can be classified as both. Components meeting neither threshold carry variance not attributable to either variable alone, such as noise or an interaction between the two.
+
+**4. Contact responsiveness.** For each class $X$ (temperature or salinity), weight the absolute loading of every contact by the variance explained by its component, and sum over the components in that class, $\mathcal{K}_X$:
+
+$$
+w_c^{(X)} = \sum_{k \in \mathcal{K}_X} \lambda_k \, \lvert L_{kc} \rvert
+$$
+
+The absolute value discards the sign of the loading, so a contact that breaks and one that forms contribute equally to its responsiveness.
+
+**5. Regional share of responsiveness.** Divide the channel into structural regions defined by residue ranges (a coarser grouping of the domains in `DOMAIN_SEGMENTS` is a natural choice). For a contact $c$ between residues $i_c$ and $j_c$, assign half of its weight to the region containing each residue, sum within each region $r$, and normalise over regions:
+
+$$
+R_X(r) = \sum_c \tfrac{1}{2} \, w_c^{(X)} \left( \mathbb{1}[i_c \in r] + \mathbb{1}[j_c \in r] \right),
+\qquad
+\text{share}_X(r) = \frac{R_X(r)}{\sum_{r'} R_X(r')}
+$$
+
+A contact whose residues both lie in one region contributes its full weight to that region, while an interfacial contact is split between the two regions it connects.
+
+**6. Per-residue responsiveness.** The same weighted sum, accumulated per residue instead of per region, gives a responsiveness profile along the sequence:
+
+$$
+\rho_X(n) = \sum_c \tfrac{1}{2} \, w_c^{(X)} \left( \mathbb{1}[i_c = n] + \mathbb{1}[j_c = n] \right)
+$$
+
+Like the RMSF variability, this profile can be written into the B-factor column of a reference structure to map the temperature- and salinity-responsive residues onto the channel.
+
 #### Lipid Analysis
+
+`ProteinLipidNetwork.ipynb` quantifies how each lipid species in the membrane interacts with the channel: how closely it packs against the protein, and which residues it contacts. Its main purpose is to find lipid binding sites — positions where a particular species is in contact far more often than its average across the channel, which is what a specific, structured interaction looks like.
+
+**Inputs.** This notebook needs the full system, protein and membrane, so it reads the centred full-system `NPT.gro` and `NPT.xtc` rather than the protein-only files. Its main settings are:
+
+| Setting | Meaning |
+|---|---|
+| `LIPID_RESNAMES` | Each lipid species as a display label mapped to its residue name at each model level. Force fields name the same lipid differently — cholesterol is `CHOL` in Martini but `CHL1` in CHARMM36, for example — so the mapping keeps atomistic and coarse-grained results under one label. |
+| `LIPID_COLORS` | One colour per species, used consistently across every figure. |
+| `PROTEIN_SELECTION` | Protein selection per model level. `"protein"` works for standard residue names; some coarse-grained topologies need an explicit selection such as `"name BB SC1 SC2 SC3 SC4"`. |
+| `CONTACT_THRESHOLD` | Contact cutoff per model level: 4.5 Å for atomistic heavy atoms and 6.0 Å for coarse-grained beads. |
+| `HEAVY_ATOMS_ONLY` | Exclude hydrogens (atomistic only). |
+| `ANALYSIS_CONDITIONS` | Which grid points to analyse. This is the most expensive notebook, so it defaults to a single condition; add more once the cost of one is known. |
+| `FRAME_STEP` | Frame stride (default 50). |
+| `MAX_DISTANCE` | Optional cap on the minimum-distance search. Setting it slightly above the contact cutoff speeds the calculation considerably, but distances beyond it are recorded as infinite, and the distribution plots report how many values were dropped as a result. |
+
+**Two measurements, two questions.** The notebook makes two complementary measurements from the same trajectory:
+
+- **Minimum lipid–protein distance.** For every lipid molecule in every frame, the notebook records the closest approach of any of its atoms to the protein, using a periodic KD-tree for orthorhombic boxes and MDAnalysis's `distance_array` for triclinic boxes. Pooled over molecules and frames, this gives a distance distribution per species, shown as violin plots side by side and optionally as individual histograms. A species whose distribution sits low against the axis stays in contact with the channel; one centred well away from zero behaves as bulk membrane. A summary table ranks species by median distance and reports the 5th percentile, the minimum, and the bound fraction — the proportion of molecule–frame observations within the contact cutoff.
+- **Per-residue contact probability.** For every residue, the notebook records the fraction of frames in which it is within the cutoff of any molecule of a given species, averaged over subunits. This gives one profile per species along the sequence, with peaks marking candidate binding sites. It is occupancy, not stoichiometry: two molecules at one site count the same as one.
+
+**Candidate binding sites.** A residue is reported as a candidate site for a species when its contact probability is at least three times that species' mean across the channel and at least 0.15. Because the enrichment is relative to each species' own mean, an abundant lipid that touches everything does not mask a rare one with a specific site. This is a screening heuristic; confirm hits by inspecting the structure.
+
+**Interpretation and cost.** Coarse-grained and atomistic probabilities are not directly comparable — the cutoffs, particle definitions, and bead positions all differ — so compare trends between resolutions rather than absolute values. The pooled distance distribution mixes "many lipids occasionally close" with "a few lipids always close"; the per-residue profile is what separates the two. Cost scales with frames × lipid molecules × protein atoms, and memory with frames × residues × lipid molecules for every species at once, so for long atomistic trajectories raise `FRAME_STEP` before analysing additional conditions.
 
 ## Contact
 
