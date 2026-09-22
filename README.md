@@ -348,9 +348,213 @@ Group numbers differ between the atomistic and coarse-grained systems and betwee
 
 ### Simulate
 
-Now that the systems are constructed, it is time to simulate them. [Here](
+Now that the systems are constructed, it is time to simulate them. [Here](https://github.com/zamydm/GIMLET/tree/main/Simulation) you can find practical simulation scripts that can minimize energy, equilibrate, and simulate a variety of ion channels. Atomistic and coarse-grained systems follow the same staged pipeline of minimization, five equilibration steps, and production, but the two resolutions differ in how each stage is run. The general pipeline for simulations goes:
+
+- **Energy Minimization:** The role of energy minimization is to remove the steric clashes, distorted geometries, and high-energy contacts introduced while building the system. Repaired loops, inserted lipids, and ions placed by replacing water all leave atoms closer together than is physically reasonable, and starting dynamics from that state produces forces large enough to crash the simulation. A steepest descent minimization of up to 5000 steps relaxes the structure to the nearest local energy minimum so that dynamics can begin stably. Atomistic systems are minimized with the protein and lipids restrained and stop once the maximum force falls below 1000 kJ mol⁻¹ nm⁻¹; coarse-grained systems are minimized without restraints.
+- **NVT Equilibration:** The role of the NVT equilibration is to bring the system to the target temperature at constant volume. The thermostat drives the kinetic energy to the desired temperature while strong restraints on the protein and lipids hold the overall architecture in place, so the solvent and ions can reorganize around them. Holding the box fixed prevents the volume from fluctuating wildly while the system is still far from equilibrium. Atomistic systems use two NVT steps (Steps 1–2) at a 1 fs timestep. Coarse-grained systems skip the NVT stage and begin directly under pressure coupling; instead, the first steps use a very small timestep for a Martini system, which serves the same purpose of starting dynamics gently.
+- **NPT Equilibration:** The role of the NPT equilibration is to bring the system to the target pressure and density. The barostat is switched on and the box is allowed to change size, so the bilayer can relax to its equilibrium area per lipid and thickness and the solvent can reach the correct density. Restraints are relaxed step by step so the protein and membrane adapt to each other without sudden rearrangement, and the timestep is increased toward its production value as the system stabilizes. Atomistic systems use three NPT steps (Steps 3–5); coarse-grained systems run all five equilibration steps under NPT.
+- **NPT Simulation:** Finally, we can simulate. The production run is performed in the NPT ensemble with all position and dihedral restraints removed. In coarse-grained systems the elastic network remains active, since it is part of the protein topology rather than a switchable restraint. This is the trajectory used for analysis.
+
+#### Equilibration schedules
+
+The tables below summarize each stage of the scripts. Restraint force constants are in kJ mol⁻¹ nm⁻² for position restraints and kJ mol⁻¹ rad⁻² for dihedral restraints; a dash means the restraint is off.
+
+**Atomistic**
+
+| Stage | Ensemble | Timestep | Steps | Length | Barostat | Backbone | Side chain | Lipid | Dihedral |
+|---|---|---|---|---|---|---|---|---|---|
+| EM | — | — | ≤ 5,000 | — | — | 4000 | 2000 | 1000 | 1000 |
+| Step 1 | NVT | 1 fs | 125,000 | 125 ps | — | 4000 | 2000 | 1000 | 1000 |
+| Step 2 | NVT | 1 fs | 125,000 | 125 ps | — | 2000 | 1000 | 400 | 400 |
+| Step 3 | NPT | 1 fs | 250,000 | 250 ps | Parrinello-Rahman | 1000 | 500 | 400 | 200 |
+| Step 4 | NPT | 2 fs | 250,000 | 500 ps | Parrinello-Rahman | 500 | 200 | 200 | 200 |
+| Step 5 | NPT | 2 fs | 250,000 | 500 ps | Parrinello-Rahman | 500 | 200 | 200 | 200 |
+| Production | NPT | 2 fs | 200,000,000 | 400 ns | Parrinello-Rahman | — | — | — | — |
+
+**Coarse Grained**
+
+| Stage | Ensemble | Timestep | Steps | Length | Barostat | Protein | Lipid headgroup |
+|---|---|---|---|---|---|---|---|
+| EM | — | — | ≤ 5,000 | — | — | — | — |
+| Step 1 | NPT | 2 fs | 500,000 | 1 ns | Berendsen | 500 | 100 |
+| Step 2 | NPT | 5 fs | 200,000 | 1 ns | Berendsen | 500 | 100 |
+| Step 3 | NPT | 10 fs | 100,000 | 1 ns | Berendsen | 250 | 50 |
+| Step 4 | NPT | 15 fs | 50,000 | 0.75 ns | Berendsen | 100 | 20 |
+| Step 5 | NPT | 20 fs | 50,000 | 1 ns | Berendsen | 50 | 10 |
+| Production | NPT | 20 fs | 200,000,000 | 4 µs | Parrinello-Rahman | — | — |
+
+In total, equilibration covers 1.5 ns for atomistic systems and 4.75 ns for coarse-grained systems. Production length is set by `nsteps` in `NPT.mdp` and should be chosen for the process being studied; the defaults above are 400 ns atomistic and 4 µs coarse grained.
+
+#### Gradual restraint release
+
+Restraints are controlled through the `define` field of each `.mdp` file rather than by editing topologies between steps. Each step passes smaller force constants to the same restraint definitions.
+
+Atomistic systems use the restraint definitions written into the topology by CHARMM-GUI, with separate force constants for protein backbone heavy atoms, protein side-chain heavy atoms, the z-position of lipid headgroups, and lipid dihedrals:
+
+```
+define = -DPOSRES -DPOSRES_FC_BB=<fc> -DPOSRES_FC_SC=<fc> -DPOSRES_FC_LIPID=<fc> -DDIHRES -DDIHRES_FC=<fc>
+```
+
+Coarse-grained systems use the adjustable `POSRES_FC` protein restraint set up after Martinize2, together with a lipid headgroup restraint:
+
+```
+define = -DPOSRES -DPOSRES_FC=<fc> -DBILAYER_LIPIDHEAD_FC=<fc>
+```
+
+A `define` only takes effect if the matching `#ifdef` block exists in the topology. If lipid topologies come from a different source, check the name of the restraint macro in their `.itp` files and update the `define` line to match.
+
+Protein restraints are held stronger and released more slowly than lipid restraints, since the protein structure is more sensitive to early rearrangement than the bilayer. The restraint reference coordinates are scaled with the box as it changes under pressure coupling — by the center of mass in atomistic systems (`refcoord-scaling = com`) and by the full scaling matrix in coarse-grained systems (`refcoord-scaling = all`) — so that the restraints do not resist the relaxation of the box itself.
+
+#### Running the pipeline
+
+The same sequence of commands is used for both atomistic and coarse-grained systems; the resolution is determined entirely by the input structure, topology, and `.mdp` files. The scripts in the [Simulation](https://github.com/zamydm/GIMLET/tree/main/Simulation) folder use the following file names: `EnergyMinim.mdp` for minimization, `EquilibrationStep1.mdp` through `EquilibrationStep5.mdp` for equilibration, and `NPT.mdp` for production. Replace `<system>` with the base name of the `.gro` and `.top` files produced during system construction.
+
+```bash
+# Energy minimization
+gmx_mpi grompp -f EnergyMinim.mdp -c <system>.gro -r <system>.gro -p <system>.top -o EM.tpr -maxwarn 4
+srun gmx_mpi mdrun -v -append -deffnm EM
+
+# Equilibration step 1
+gmx_mpi grompp -f EquilibrationStep1.mdp -c EM.gro -r EM.gro -p <system>.top -n Index.ndx -o EquilibrationStep1.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm EquilibrationStep1
+
+# Equilibration step 2
+gmx_mpi grompp -f EquilibrationStep2.mdp -c EquilibrationStep1.gro -r EquilibrationStep1.gro -p <system>.top -n Index.ndx -o EquilibrationStep2.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm EquilibrationStep2
+
+# Equilibration step 3
+gmx_mpi grompp -f EquilibrationStep3.mdp -c EquilibrationStep2.gro -r EquilibrationStep2.gro -p <system>.top -n Index.ndx -o EquilibrationStep3.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm EquilibrationStep3
+
+# Equilibration step 4
+gmx_mpi grompp -f EquilibrationStep4.mdp -c EquilibrationStep3.gro -r EquilibrationStep3.gro -p <system>.top -n Index.ndx -o EquilibrationStep4.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm EquilibrationStep4
+
+# Equilibration step 5
+gmx_mpi grompp -f EquilibrationStep5.mdp -c EquilibrationStep4.gro -r EquilibrationStep4.gro -p <system>.top -n Index.ndx -o EquilibrationStep5.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm EquilibrationStep5
+
+# Production (NPT)
+gmx_mpi grompp -f NPT.mdp -c EquilibrationStep5.gro -r EquilibrationStep5.gro -p <system>.top -n Index.ndx -o NPT.tpr -maxwarn 1
+srun gmx_mpi mdrun -v -append -deffnm NPT
+```
+
+Notes on the commands:
+
+- **`gmx_mpi` and `srun`.** These commands are written for an HPC cluster running Slurm with an MPI build of GROMACS, where `srun` launches `mdrun` across the allocated resources. The `grompp` preprocessing step is serial and does not need `srun`. On a workstation with a standard build, replace `gmx_mpi` with `gmx` and drop `srun`.
+- **`-c` and `-r`.** Each step starts from the final coordinates of the previous one (`-c`), and the same structure is passed as the restraint reference (`-r`) so that position restraints hold atoms near where the previous step left them rather than pulling them back toward the original build. The production `.mdp` files define no restraints, so `-r` has no effect there; it is kept so that every step can be run with the same command pattern.
+- **`-n Index.ndx`.** The index file supplies the `Protein`, `Membrane`, and `Solvent` groups used for temperature coupling. Energy minimization has no thermostat, so it does not need the index file.
+- **`-maxwarn 1`.** This allows `grompp` to proceed past known, expected warnings, such as the Berendsen barostat warning in coarse-grained equilibration. Because it also suppresses unexpected warnings, read the `grompp` output for each new system before relying on it; a warning about a net system charge or a missing parameter is a sign of a build problem, not something to pass over.
+- **Velocities between steps.** Step 1 is the only step with `continuation = no`; in coarse-grained systems it also generates initial velocities from a Maxwell–Boltzmann distribution at the target temperature (`gen-vel = yes`, `gen-temp`). Every later step sets `gen-vel = no` and `continuation = yes`, so velocities are carried forward in the `.gro` file written by the previous step.
+- **`-append` and restarts.** Long production runs will often exceed a single job's wall-time limit. Resubmitting the same command with the checkpoint file continues the run and appends to the existing output files rather than creating new numbered parts:
+
+```bash
+srun gmx_mpi mdrun -v -append -deffnm NPT -cpi NPT.cpt
+```
+
+#### Simulation conditions
+
+Each environmental condition — for example a given salt concentration, temperature, or ligand state — should be treated as its own independent system. Build each system separately, then minimize, equilibrate, and simulate it at its own target conditions rather than changing conditions partway through a trajectory. For temperature-sensitive channels, running a series of systems across a temperature range (for instance in increments spanning the physiological and activating ranges) allows temperature-dependent behavior to be compared directly. The scripts default to 310 K. The temperature appears in `ref-t` in every equilibration and production file, and in `gen-temp` in Step 1, and all of them must be changed together so the system is thermalized at the condition it will be sampled at.
+
+#### Atomistic parameters
+
+Atomistic simulations use the CHARMM36m force field with the CHARMM-modified TIP3P water model and periodic boundary conditions in all stages. Key production settings from `NPT.mdp`:
+
+```
+integrator              = md
+dt                      = 0.002
+nsteps                  = 200000000
+cutoff-scheme           = Verlet
+nstlist                 = 20
+verlet-buffer-tolerance = 0.005
+coulombtype             = PME
+rcoulomb                = 1.2
+vdwtype                 = Cut-off
+vdw-modifier            = Potential-shift
+rvdw                    = 1.2
+DispCorr                = EnerPres
+tcoupl                  = V-rescale
+tc-grps                 = Protein Membrane Solvent
+tau-t                   = 1.0 1.0 1.0
+ref-t                   = 310 310 310
+Pcoupl                  = Parrinello-Rahman
+Pcoupltype              = Semiisotropic
+tau_p                   = 5.0
+compressibility         = 4.5e-5 4.5e-5
+ref_p                   = 1.0 1.0
+constraints             = all-bonds
+constraint_algorithm    = LINCS
+nstxout-compressed      = 10000
+nstenergy               = 10000
+```
+
+Notes:
+
+- Particle-mesh Ewald handles long-range electrostatics, with 1.2 nm electrostatic and van der Waals cutoffs.
+- The van der Waals treatment differs between stages. Minimization and the two NVT steps use a force-switched potential between 1.0 and 1.2 nm (`vdw-modifier = Force-switch`, `rvdw_switch = 1.0`). Steps 3–5 and production use a potential-shifted cutoff at 1.2 nm, with a long-range dispersion correction to energy and pressure (`DispCorr = EnerPres`).
+- Pressure coupling is semi-isotropic so that the bilayer plane (x–y) and the membrane normal (z) are scaled independently, which is required for a membrane to relax its area and thickness correctly. Parrinello-Rahman coupling with a 5 ps time constant is used from the first NPT step through production. If an early NPT step is unstable for a new system, running that step with the C-rescale barostat — which tolerates systems far from equilibrium — before switching to Parrinello-Rahman is a common remedy.
+- The `tc-grps` are the `Protein`, `Membrane`, and `Solvent` index groups built during system construction, each coupled with a 1 ps time constant. Coupling them separately prevents heat from accumulating in one component of the system.
+- All bonds are constrained with LINCS at its default expansion order, and center-of-mass motion of the whole system is removed every 100 steps from Step 3 onward.
+- Coordinates are written every 1000 steps during equilibration and every 10,000 steps (20 ps) during production, to a compressed `.xtc` trajectory only. Full-precision coordinates, velocities, and forces are not written to trajectory files.
+
+#### Coarse-grained parameters
+
+Coarse-grained simulations use the Martini 3 force field and periodic boundary conditions in all stages. Key production settings from `NPT.mdp`:
+
+```
+integrator              = md
+dt                      = 0.020
+nsteps                  = 200000000
+cutoff-scheme           = Verlet
+nstlist                 = 20
+verlet-buffer-tolerance = 0.005
+coulombtype             = Reaction-field
+rcoulomb                = 1.1
+epsilon-r               = 15
+epsilon-rf              = 0
+vdw_type                = Cut-off
+vdw-modifier            = Potential-shift
+rvdw                    = 1.1
+tcoupl                  = V-rescale
+tc-grps                 = Protein Membrane Solvent
+tau-t                   = 1.0 1.0 1.0
+ref-t                   = 310 310 310
+Pcoupl                  = Parrinello-Rahman
+Pcoupltype              = Semiisotropic
+tau-p                   = 12.0
+compressibility         = 3e-4 3e-4
+ref-p                   = 1.0 1.0
+refcoord-scaling        = all
+constraints             = none
+constraint_algorithm    = LINCS
+lincs-order             = 8
+lincs_iter              = 2
+nstxout-compressed      = 10000
+nstenergy               = 10000
+```
+
+Notes:
+
+- Reaction-field electrostatics (`epsilon-r = 15`, `epsilon-rf = 0`, the latter meaning an infinite reaction-field dielectric) with 1.1 nm electrostatic and potential-shifted van der Waals cutoffs is the standard Martini 3 treatment.
+- The compressibility is larger than in the atomistic case because coarse-grained systems are softer.
+- Berendsen pressure coupling with a 4 ps time constant is used throughout equilibration because its exponential relaxation damps the large box fluctuations of an unequilibrated system, while Parrinello-Rahman with a 12 ps time constant is used in production because it samples the correct NPT ensemble. Recent GROMACS versions flag the Berendsen barostat with a warning, which is one of the warnings the `-maxwarn` flag accounts for. C-rescale is a drop-in alternative that avoids the warning and also samples the correct ensemble.
+- The timestep is ramped from 2 fs to 20 fs over the five equilibration steps. A system that becomes unstable at the production timestep can often be rescued by lengthening the intermediate steps or by running production at 10–15 fs, rather than by loosening the elastic network or constraints.
+- `constraints = none` means no bonds are converted to constraints, but the `[ constraints ]` sections defined in Martini topologies (for example in sterols and aromatic side chains) are still enforced. These rigid, coupled constraints are why LINCS is run at an expansion order of 8 with two iterations.
+- Coordinates are written every 1000 steps during equilibration and every 10,000 steps (200 ps) during production, to a compressed `.xtc` trajectory only.
 
 ### Analysis
+
+#### RMSD
+
+#### RMSF
+
+#### Radius of Gyration
+
+#### Contact Analysis
+
+#### ChACRA
+
+#### Pore Analysis
 
 ## Contact
 
