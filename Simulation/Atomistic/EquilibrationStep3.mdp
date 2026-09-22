@@ -1,0 +1,54 @@
+define                  = -DPOSRES -DPOSRES_FC_BB=1000.0 -DPOSRES_FC_SC=500.0 -DPOSRES_FC_LIPID=400.0 -DDIHRES -DDIHRES_FC=200.0
+; Used for implementing position restraints. Restrains lipid heads, solvent, protein side 
+integrator              = md	      		   ; Algorithm (md = integrating over Newton's equations)
+dt                      = 0.001       		   ; Time step for integration (1 fentoseconds)
+nsteps                  = 250000 		   ; Simulation run time (0.25 nanoseconds)
+nstcomm                 = 100			   ; Frequency for center of mass motion removal
+comm-grps		= System		   ; Groups for center of mass motion removal
+	
+;-----------------------------
+; Output control
+;-----------------------------
+
+nstxout                 = 0			   ; Number of steps between writing coordinates to the trajectory file
+nstvout                 = 0			   ; Number of steps between writing velocities to the trajectory file
+nstfout                 = 0			   ; Number of steps between writing force to the trajectory file
+nstxout-compressed      = 1000      		   ; Number of steps between writing position coordinates using lossy
+compressed-x-precision  = 1000       		   ; Precision with which to write to the compressed trajectory file
+nstlog                  = 1000       		   ; Number of steps between writing energies to the log file
+nstenergy               = 1000        	  	   ; Number of steps between writing energies to energy file
+
+cutoff-scheme           = Verlet    		   ; Buffered neighbor searching
+nstlist                 = 20	      		   ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = Grid	    		   ; Type of verlet (default)
+pbc                     = xyz	      		   ; Periodic boundary conditions in all dimensions
+verlet-buffer-tolerance = 0.005			   ; Overrides automated buffer setting
+rlist                   = 1.0			   ; Cut-off distance for short-range neighbor list
+
+coulombtype             = PME 			   ; Fast smooth Particle-Mesh Ewald (SPME) electrostatics
+rcoulomb                = 1.2			   ; Distance for Coulomb cutoff
+vdw_type                = Cut-off		   ; Plain cut-off with pair list radius rlist
+vdw-modifier            = Potential-shift	   ; Shift VDW potential by constant such that it is zero at cutoff
+rvdw                    = 1.2			   ; Distance for LJ cutoff
+rvdw_switch             = 1.0
+
+tcoupl                  = V-Rescale		   ; Temperature coupling using Berendsen with proper canonical ensemble
+tc-grps                 = Protein Membrane Solvent ; Groups to couple in separate temperature bath 
+tau-t                   = 1.0 1.0 1.0		   ; Time constant for coupling 
+ref-t                   = 310 310 310 		   ; Reference temperature for coupling
+
+Pcoupl                  = Parrinello-Rahman	   ; Exponential relaxation coupling
+Pcoupltype              = Semiisotropic		   ; Isotropic coupling in x/y, different in z
+tau_p                   = 5.0			   ; Time constant for pressure coupling
+compressibility         = 4.5e-5 4.5e-5		   ; Compressibility of the system in 1/bar
+ref_p                   = 1.0  1.0		   ; Reference pressure for coupling
+
+refcoord-scaling        = com			   ; Reference coordinates are scaled with center of mass
+gen-vel                 = no			   ; Velocities are equal to input energy minimization
+continuation	 	= yes			   ; Apply constraints to start configuration and reset shells
+DispCorr		= EnerPres		   ; Apply long range corrections for energy and pressure
+
+constraints             = all-bonds          	   ; Convert h-bonds to constraints
+constraint_algorithm    = LINCS         	   ; Linear constraint solver. Does corrective iterations
+
+

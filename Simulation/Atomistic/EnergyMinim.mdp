@@ -1,0 +1,25 @@
+define                  = -DPOSRES -DPOSRES_FC_BB=4000.0 -DPOSRES_FC_SC=2000.0 -DPOSRES_FC_LIPID=1000.0 -DDIHRES -DDIHRES_FC=1000.0
+; Used for implementing position restraints. Restrains lipid heads, solvent, protein side 
+integrator              = steep         	 ; Algorithm (steep = steepest descent minimization)
+
+emtol                   = 1000.0        	 ; Stop minimization when the maximum force < 1000.0 kJ/mol/nm
+emstep                  = 0.001          	 ; Energy step size
+nsteps                  = 5000	         	 ; Maximum number of (minimization) steps to perform
+
+nstlist                 = 20			 ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = grid			 ; Check only nearby atoms when constructing new neighbor
+cutoff-scheme           = Verlet        	 ; Buffered neighbor searching
+verlet-buffer-tolerance = 0.005			 ; Maximum allowed error for pair interactions
+pbc 			= xyz			 ; Periodic boundary conditions in all dimensions
+
+coulombtype             = PME			 ; Reaction field electrostatics with coulomb cut-off
+rcoulomb                = 1.2			 ; Distance for Coulomb cutoff
+rlist 			= 1.0			 ; Cut off distance for short range neighbor list
+vdwtype                 = Cut-off		 ; Plain cut-off with pair list radius rlist
+vdw-modifier            = Force-Switch 		 ; Shift VDW potential by constant such that it is zero at cutoff
+rvdw_switch             = 1.0			 ; Where to start LJ and potential switching
+rvdw                    = 1.2			 ; Distance for LJ cutoff
+
+constraints             = none          	 ; No constraints except for those defined in topology
+constraint_algorithm    = LINCS         	 ; Linear constraint solver. Does corrective iterations
+

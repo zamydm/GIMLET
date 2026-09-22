@@ -1,0 +1,42 @@
+define                  = -DPOSRES -DPOSRES_FC_BB=2000.0 -DPOSRES_FC_SC=1000.0 -DPOSRES_FC_LIPID=400.0 -DDIHRES -DDIHRES_FC=400.0
+; Used for implementing position restraints. Restrains lipid heads, solvent, protein side 
+integrator              = md	      		   ; Algorithm (md = integrating over Newton's equations)
+dt                      = 0.001       		   ; Time step for integration (1 fentoseconds)
+nsteps                  = 125000  		   ; Simulation run time (0.125 nanoseconds)
+	
+;-----------------------------
+; Output control
+;-----------------------------
+
+nstxout                 = 0			   ; No writing coordinates to the trajectory file
+nstvout                 = 0			   ; No writing velocities to the trajectory file
+nstfout                 = 0			   ; No between writing force to the trajectory file
+nstxout-compressed      = 1000      		   ; Number of steps between writing position coordinates using lossy
+compressed-x-precision  = 1000       		   ; Precision with which to write to the compressed trajectory file
+nstlog                  = 1000       		   ; Number of steps between writing energies to the log file
+nstenergy               = 1000        	  	   ; Number of steps between writing energies to energy file
+
+cutoff-scheme           = Verlet    		   ; Buffered neighbor searching
+nstlist                 = 20	      		   ; Frequency to update neighbor list (20 provides best performance)
+ns_type                 = Grid	    		   ; Type of verlet (default)
+pbc                     = xyz	      		   ; Periodic boundary conditions in all dimensions
+verlet-buffer-tolerance = 0.005			   ; Overrides automated buffer setting
+rlist                   = 1.2			   ; Cut-off distance for short-range neighbor list
+
+coulombtype             = PME 			   ; Fast smooth Particle-Mesh Ewald (SPME) electrostatics
+rcoulomb                = 1.2			   ; Distance for Coulomb cutoff
+vdw_type                = Cut-off		   ; Plain cut-off with pair list radius rlist
+vdw-modifier            = Force-switch		   ; Shift VDW potential by constant such that it is zero at cutoff
+rvdw_switch             = 1.0			   ; Where to start LJ and potential switching
+rvdw                    = 1.2			   ; Distance for LJ cutoff
+
+tcoupl                  = V-Rescale		   ; Temperature coupling using Berendsen with proper canonical ensemble
+tc-grps                 = Protein Membrane Solvent ; Groups to couple in separate temperature bath 
+tau-t                   = 1.0 1.0 1.0		   ; Time constant for coupling 
+ref-t                   = 310 310 310 		   ; Reference temperature for coupling
+
+continuation	 	= yes			   ; Apply constraints to start configuration and reset shells
+constraints             = all-bonds          	   ; Convert h-bonds to constraints
+constraint_algorithm    = LINCS         	   ; Linear constraint solver. Does corrective iterations
+
+
