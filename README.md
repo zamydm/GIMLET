@@ -19,12 +19,6 @@
     <a href="https://github.com/zamydm/GIMLET/issues">
       <img src="https://img.shields.io/github/issues/zamydm/GIMLET" alt="open issues" />
     </a>
-    <a href="https://github.com/zamydm/GIMLET/network/members">
-      <img src="https://img.shields.io/github/forks/zamydm/GIMLET" alt="forks" />
-    </a>
-    <a href="https://github.com/zamydm/GIMLET/stargazers">
-      <img src="https://img.shields.io/github/stars/zamydm/GIMLET" alt="stars" />
-    </a>
   </p>
 
 </div>
