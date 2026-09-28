@@ -951,8 +951,8 @@ Like the RMSF variability, this profile can be written into the B-factor column 
 <div align="center">
 
   Zachary Sottoriva - zamydm@iastate.edu
-  
-  Please cite the following: INSERT MY PAPER CITATION HERE
+
+  <!-- Please cite the following: INSERT MY PAPER CITATION HERE -->
 
 </div>
 
