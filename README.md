@@ -64,6 +64,8 @@ The two resolutions are built from the same repaired structure, placed in matchi
 
 The workflow is designed around a **grid of simulation conditions**, such as a set of temperatures at each of several salt concentrations. Each condition is built and equilibrated as an independent system, and the analysis identifies which structural features — residue flexibility, pore dimensions, residue–residue contacts, lipid binding — respond to the scanned variables. Nothing in it is specific to one channel: structure names, box dimensions, lipid compositions, ion counts, and residue numbering are all left as inputs, and every channel-specific value used by the analysis is defined in a single configuration file.
 
+This repository additionally contains a sample of the ChACRA analysis scripts as used [here](https://pubs.acs.org/jctcce/article/20/19/8711/168981/Illuminating-Protein-Allostery-by-Chemically) on the protein TRPV1. The file **TRPV1-ChACRA** contains scripts and sample data for conducting further contact analysis as needed.
+
 ### Workflow
 
 ```mermaid
